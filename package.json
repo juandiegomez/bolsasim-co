@@ -1,0 +1,59 @@
+{
+  "name": "bolsasim-co",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.11.1 <25",
+    "npm": ">=11.6.2 <12"
+  },
+  "packageManager": "npm@11.6.2",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings=0 && npm run lint:api",
+    "lint:api": "redocly lint docs/api/openapi.yaml",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "npm run test:unit && npm run test:integration && npm run test:contract",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:contract": "vitest run --project contract",
+    "test:e2e": "playwright test",
+    "db:up": "docker compose up -d --wait db db-test",
+    "db:stop": "docker compose stop db db-test",
+    "db:check": "tsx scripts/database.ts check",
+    "db:migrate": "tsx scripts/database.ts migrate",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@next/env": "16.3.4",
+    "decimal.js": "10.6.0",
+    "drizzle-orm": "0.45.2",
+    "next": "16.3.4",
+    "pg": "8.23.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@redocly/cli": "2.51.2",
+    "@types/node": "24.13.3",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.4",
+    "prettier": "3.9.6",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0",
+    "yaml": "2.9.0"
+  }
+}
