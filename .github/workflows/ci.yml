@@ -1,0 +1,51 @@
+name: Foundation CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_DB: bolsasim_test
+          POSTGRES_USER: bolsasim
+          POSTGRES_PASSWORD: ci-local-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bolsasim -d bolsasim_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgresql://bolsasim:ci-local-only@127.0.0.1:5432/bolsasim_ci
+      TEST_DATABASE_URL: postgresql://bolsasim:ci-local-only@127.0.0.1:5432/bolsasim_test
+      APP_TIME_ZONE: America/Bogota
+      LOG_LEVEL: info
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install --global npm@11.6.2
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Check and migrate the dedicated CI database
+        env:
+          DATABASE_URL: postgresql://bolsasim:ci-local-only@127.0.0.1:5432/bolsasim_test
+        run: |
+          npm run db:check
+          npm run db:migrate
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
