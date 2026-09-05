@@ -1,0 +1,647 @@
+openapi: 3.1.0
+info:
+  title: BolsaSim CO API
+  version: 0.1.0
+  description: API de una demo local de inversión con capital ficticio.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: /api/v1
+security: []
+tags:
+  - name: Portfolio
+    description: Ledger, posiciones y valoración del portafolio local.
+  - name: Instruments
+    description: Catálogo y precios de instrumentos financieros.
+  - name: Trading
+    description: Previsualización y confirmación de compras simuladas.
+  - name: Historical simulation
+    description: Cálculos históricos sin efectos persistentes.
+paths:
+  /health:
+    get:
+      tags: [Portfolio]
+      operationId: getHealth
+      summary: Comprueba liveness sin consultar dependencias externas
+      description: Slice 0. No valida disponibilidad de base de datos ni mercado.
+      responses:
+        "200":
+          description: Aplicación viva
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "405": { $ref: "#/components/responses/Problem" }
+        "500": { $ref: "#/components/responses/Problem" }
+  /portfolios/initialize:
+    post:
+      tags: [Portfolio]
+      operationId: initializePortfolio
+      summary: Inicializa idempotentemente el portafolio local
+      responses:
+        "200":
+          description: Portafolio existente o recién inicializado
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioSnapshot" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /portfolio:
+    get:
+      tags: [Portfolio]
+      operationId: getPortfolio
+      summary: Obtiene el snapshot derivado del ledger
+      responses:
+        "200":
+          description: Snapshot actual
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortfolioSnapshot" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /portfolio/positions:
+    get:
+      tags: [Portfolio]
+      operationId: listPositions
+      summary: Lista las posiciones derivadas del ledger
+      responses:
+        "200":
+          description: Posiciones derivadas
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Position" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /portfolio/evolution:
+    get:
+      tags: [Portfolio]
+      operationId: getPortfolioEvolution
+      summary: Obtiene la evolución diaria del portafolio
+      parameters:
+        - $ref: "#/components/parameters/FromDate"
+        - $ref: "#/components/parameters/ToDate"
+      responses:
+        "200":
+          description: Evolución diaria
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      { $ref: "#/components/schemas/PortfolioEvolutionPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /portfolio/transactions:
+    get:
+      tags: [Portfolio]
+      operationId: listTransactions
+      summary: Lista el ledger con paginación por cursor
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Ledger paginado, más reciente primero
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Transaction" }
+                  nextCursor:
+                    anyOf: [{ type: string }, { type: "null" }]
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /instruments:
+    get:
+      tags: [Instruments]
+      operationId: listInstruments
+      summary: Lista o busca instrumentos
+      parameters:
+        - name: query
+          in: query
+          schema: { type: string, minLength: 1, maxLength: 80 }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/InstrumentStatus" }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Instrumentos encontrados
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InstrumentPage" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /instruments/{instrumentId}:
+    get:
+      tags: [Instruments]
+      operationId: getInstrument
+      summary: Obtiene la metadata de un instrumento
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+      responses:
+        "200":
+          description: Instrumento
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Instrument" }
+        "404": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /instruments/{instrumentId}/price:
+    get:
+      tags: [Instruments]
+      operationId: getLatestInstrumentPrice
+      summary: Obtiene el último cierre disponible
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+        - $ref: "#/components/parameters/PriceBasis"
+      responses:
+        "200":
+          description: Último cierre disponible
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PriceObservation" }
+        "404": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /instruments/{instrumentId}/history:
+    get:
+      tags: [Instruments]
+      operationId: getInstrumentHistory
+      summary: Obtiene la serie histórica diaria
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+        - $ref: "#/components/parameters/FromDate"
+        - $ref: "#/components/parameters/ToDate"
+        - $ref: "#/components/parameters/PriceBasis"
+      responses:
+        "200":
+          description: Serie diaria inclusiva
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalSeries" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /buy-previews:
+    post:
+      tags: [Trading]
+      operationId: createBuyPreview
+      summary: Crea una previsualización de compra
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [instrumentId, amount]
+              properties:
+                instrumentId: { type: string, format: uuid }
+                amount: { $ref: "#/components/schemas/Money" }
+      responses:
+        "201":
+          description: Preview válida durante cinco minutos
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuyPreview" }
+        "422": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /buy-previews/{previewId}/confirm:
+    post:
+      tags: [Trading]
+      operationId: confirmBuyPreview
+      summary: Confirma una compra de forma atómica e idempotente
+      parameters:
+        - name: previewId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128 }
+      responses:
+        "200":
+          description: Resultado original de una repetición idempotente
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuyConfirmation" }
+        "201":
+          description: Compra registrada
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuyConfirmation" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /historical-simulations:
+    post:
+      tags: [Historical simulation]
+      operationId: runHistoricalSimulation
+      summary: Calcula una inversión histórica sin persistirla
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [instrumentId, amount, requestedStartDate]
+              properties:
+                instrumentId: { type: string, format: uuid }
+                amount: { $ref: "#/components/schemas/Money" }
+                requestedStartDate: { $ref: "#/components/schemas/MarketDate" }
+                requestedEndDate:
+                  anyOf:
+                    [
+                      { $ref: "#/components/schemas/MarketDate" },
+                      { type: "null" },
+                    ]
+                priceBasis:
+                  $ref: "#/components/schemas/PriceBasis"
+      responses:
+        "200":
+          description: Resultado sin efectos persistentes
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalSimulation" }
+        "422": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+components:
+  headers:
+    RequestId:
+      description: Identificador de correlación
+      schema: { type: string }
+  parameters:
+    InstrumentId:
+      name: instrumentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    FromDate:
+      name: from
+      in: query
+      required: true
+      schema: { $ref: "#/components/schemas/MarketDate" }
+    ToDate:
+      name: to
+      in: query
+      required: true
+      schema: { $ref: "#/components/schemas/MarketDate" }
+    PriceBasis:
+      name: priceBasis
+      in: query
+      schema:
+        { $ref: "#/components/schemas/PriceBasis", default: UNADJUSTED_CLOSE }
+  responses:
+    Problem:
+      description: Error controlado
+      headers:
+        X-Request-Id: { $ref: "#/components/headers/RequestId" }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, service, requestId]
+      properties:
+        status: { type: string, const: ok }
+        service: { type: string, const: bolsasim-co }
+        requestId: { type: string, pattern: "^[A-Za-z0-9._-]{1,128}$" }
+    Decimal:
+      type: string
+      pattern: "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+      examples: ["1000000.00"]
+    Money:
+      type: object
+      additionalProperties: false
+      required: [amount, currency]
+      properties:
+        amount: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string, pattern: "^[A-Z]{3}$", examples: [COP] }
+    MarketDate:
+      type: string
+      format: date
+    PriceBasis:
+      type: string
+      enum: [UNADJUSTED_CLOSE, ADJUSTED_CLOSE]
+      default: UNADJUSTED_CLOSE
+    InstrumentType:
+      type: string
+      enum: [EQUITY, ETF, FIXED_INCOME, FUND, INDEX, CURRENCY]
+    InstrumentStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, UNAVAILABLE]
+    Instrument:
+      type: object
+      required: [id, symbol, name, exchange, currency, type, status, dataMode]
+      properties:
+        id: { type: string, format: uuid }
+        symbol: { type: string }
+        name: { type: string }
+        exchange: { type: string }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        type: { $ref: "#/components/schemas/InstrumentType" }
+        status: { $ref: "#/components/schemas/InstrumentStatus" }
+        dataMode: { type: string, enum: [real, demo] }
+    InstrumentPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Instrument" }
+        nextCursor:
+          anyOf: [{ type: string }, { type: "null" }]
+    MarketDataMetadata:
+      type: object
+      required:
+        [
+          providerId,
+          mode,
+          retrievedAt,
+          priceBasis,
+          coverageFrom,
+          coverageTo,
+          adjustedPricePolicy,
+          limitations,
+        ]
+      properties:
+        providerId: { type: string }
+        mode: { type: string, enum: [real, demo] }
+        retrievedAt: { type: string, format: date-time }
+        priceBasis: { $ref: "#/components/schemas/PriceBasis" }
+        coverageFrom:
+          anyOf: [{ $ref: "#/components/schemas/MarketDate" }, { type: "null" }]
+        coverageTo:
+          anyOf: [{ $ref: "#/components/schemas/MarketDate" }, { type: "null" }]
+        adjustedPricePolicy: { type: string }
+        limitations:
+          type: array
+          items: { type: string }
+    PriceObservation:
+      type: object
+      required: [instrumentId, sessionDate, close, currency, metadata]
+      properties:
+        instrumentId: { type: string, format: uuid }
+        sessionDate: { $ref: "#/components/schemas/MarketDate" }
+        close: { $ref: "#/components/schemas/Decimal" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        metadata: { $ref: "#/components/schemas/MarketDataMetadata" }
+    HistoricalSeries:
+      type: object
+      required: [instrumentId, observations, metadata]
+      properties:
+        instrumentId: { type: string, format: uuid }
+        observations:
+          type: array
+          items: { $ref: "#/components/schemas/PriceObservation" }
+        metadata: { $ref: "#/components/schemas/MarketDataMetadata" }
+    Transaction:
+      type: object
+      required: [id, type, grossAmount, fees, currency, executedAt, source]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [INITIAL_DEPOSIT, BUY] }
+        instrumentId:
+          anyOf: [{ type: string, format: uuid }, { type: "null" }]
+        quantity:
+          anyOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }]
+        unitPrice:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        grossAmount: { $ref: "#/components/schemas/Money" }
+        fees: { $ref: "#/components/schemas/Money" }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        executedAt: { type: string, format: date-time }
+        marketSessionDate:
+          anyOf: [{ $ref: "#/components/schemas/MarketDate" }, { type: "null" }]
+        source: { type: string }
+    Position:
+      type: object
+      required:
+        [
+          instrument,
+          quantity,
+          cost,
+          valuationStatus,
+          price,
+          marketValue,
+          pnl,
+          returnPct,
+        ]
+      properties:
+        instrument: { $ref: "#/components/schemas/Instrument" }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        cost: { $ref: "#/components/schemas/Money" }
+        valuationStatus:
+          {
+            type: string,
+            enum: [VALUED, PRICE_UNAVAILABLE, CORPORATE_ACTION_UNSUPPORTED],
+          }
+        price:
+          anyOf:
+            [
+              { $ref: "#/components/schemas/PriceObservation" },
+              { type: "null" },
+            ]
+        marketValue:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        pnl:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        returnPct:
+          anyOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }]
+    PortfolioSnapshot:
+      type: object
+      required:
+        [
+          portfolioId,
+          asOf,
+          cash,
+          investedCost,
+          positionsValue,
+          totalValue,
+          pnl,
+          returnPct,
+          valuationStatus,
+          positions,
+        ]
+      properties:
+        portfolioId: { type: string, format: uuid }
+        asOf: { type: string, format: date-time }
+        cash: { $ref: "#/components/schemas/Money" }
+        investedCost: { $ref: "#/components/schemas/Money" }
+        positionsValue:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        totalValue:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        pnl:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        returnPct:
+          anyOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }]
+        valuationStatus: { type: string, enum: [COMPLETE, INCOMPLETE] }
+        positions:
+          type: array
+          items: { $ref: "#/components/schemas/Position" }
+    PortfolioEvolutionPoint:
+      type: object
+      required: [date, cash, totalValue, valuationStatus, priceSessionDates]
+      properties:
+        date: { $ref: "#/components/schemas/MarketDate" }
+        cash: { $ref: "#/components/schemas/Money" }
+        totalValue:
+          anyOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }]
+        valuationStatus: { type: string, enum: [COMPLETE, INCOMPLETE] }
+        priceSessionDates:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/MarketDate" }
+    BuyPreview:
+      type: object
+      required:
+        [
+          id,
+          instrument,
+          requestedAmount,
+          price,
+          quantity,
+          grossAmount,
+          remainder,
+          fees,
+          totalDebit,
+          availableCash,
+          expiresAt,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        instrument: { $ref: "#/components/schemas/Instrument" }
+        requestedAmount: { $ref: "#/components/schemas/Money" }
+        price: { $ref: "#/components/schemas/PriceObservation" }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        grossAmount: { $ref: "#/components/schemas/Money" }
+        remainder: { $ref: "#/components/schemas/Money" }
+        fees: { $ref: "#/components/schemas/Money" }
+        totalDebit: { $ref: "#/components/schemas/Money" }
+        availableCash: { $ref: "#/components/schemas/Money" }
+        expiresAt: { type: string, format: date-time }
+    BuyConfirmation:
+      type: object
+      required: [transaction, portfolio]
+      properties:
+        transaction: { $ref: "#/components/schemas/Transaction" }
+        portfolio: { $ref: "#/components/schemas/PortfolioSnapshot" }
+    HistoricalSimulation:
+      type: object
+      required:
+        [
+          instrument,
+          requestedAmount,
+          requestedStartDate,
+          requestedEndDate,
+          effectiveStartDate,
+          effectiveEndDate,
+          initialPrice,
+          finalPrice,
+          quantity,
+          investedAmount,
+          remainder,
+          finalValue,
+          pnl,
+          returnPct,
+          series,
+          assumptions,
+        ]
+      properties:
+        instrument: { $ref: "#/components/schemas/Instrument" }
+        requestedAmount: { $ref: "#/components/schemas/Money" }
+        requestedStartDate: { $ref: "#/components/schemas/MarketDate" }
+        requestedEndDate:
+          anyOf: [{ $ref: "#/components/schemas/MarketDate" }, { type: "null" }]
+        effectiveStartDate: { $ref: "#/components/schemas/MarketDate" }
+        effectiveEndDate: { $ref: "#/components/schemas/MarketDate" }
+        initialPrice: { $ref: "#/components/schemas/PriceObservation" }
+        finalPrice: { $ref: "#/components/schemas/PriceObservation" }
+        quantity: { $ref: "#/components/schemas/Decimal" }
+        investedAmount: { $ref: "#/components/schemas/Money" }
+        remainder: { $ref: "#/components/schemas/Money" }
+        finalValue: { $ref: "#/components/schemas/Money" }
+        pnl: { $ref: "#/components/schemas/Money" }
+        returnPct: { $ref: "#/components/schemas/Decimal" }
+        series:
+          type: array
+          items:
+            type: object
+            required: [date, price, value]
+            properties:
+              date: { $ref: "#/components/schemas/MarketDate" }
+              price: { $ref: "#/components/schemas/Decimal" }
+              value: { $ref: "#/components/schemas/Money" }
+        assumptions:
+          type: array
+          items: { type: string }
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code, message, requestId]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
+        details:
+          type: object
+          additionalProperties: true
