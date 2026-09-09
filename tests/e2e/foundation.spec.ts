@@ -13,7 +13,9 @@ test("FND-001: shell boots and remains usable on laptop and mobile", async ({
       page.getByRole("heading", { level: 1, name: "BolsaSim CO" }),
     ).toBeVisible();
     await expect(
-      page.getByText("El simulador está en construcción.", { exact: false }),
+      page
+        .getByText("Efectivo disponible", { exact: true })
+        .or(page.getByRole("button", { name: "Iniciar simulación" })),
     ).toBeVisible();
     await expect(page.getByRole("contentinfo")).toContainText(
       "Capital ficticio",

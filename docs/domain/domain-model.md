@@ -11,16 +11,16 @@
 
 ## Value objects
 
-| Tipo         | Contenido e invariantes                                                                    |
-| ------------ | ------------------------------------------------------------------------------------------ |
-| `Currency`   | ISO 4217; el MVP opera `COP`.                                                              |
-| `Money`      | decimal con moneda, escala máxima 2, magnitud dentro de `numeric(24,2)`.                   |
-| `Quantity`   | decimal positivo o cero, escala máxima 8.                                                  |
-| `UnitPrice`  | decimal estrictamente positivo, moneda y escala máxima 8.                                  |
-| `Percentage` | decimal; nullable cuando el denominador es cero.                                           |
-| `MarketDate` | fecha ISO `YYYY-MM-DD`, sin hora.                                                          |
-| `Instant`    | timestamp UTC de ejecución u obtención.                                                    |
-| IDs          | `UserId`, `PortfolioId`, `InstrumentId`, `TransactionId`, `PreviewId`; no intercambiables. |
+| Tipo         | Contenido e invariantes                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| `Currency`   | ISO 4217; el MVP opera `COP` como única moneda y el tipo de dominio la restringe a ese literal. |
+| `Money`      | decimal con moneda, escala máxima 2, magnitud dentro de `numeric(24,2)`.                        |
+| `Quantity`   | decimal positivo o cero, escala máxima 8.                                                       |
+| `UnitPrice`  | decimal estrictamente positivo, moneda y escala máxima 8.                                       |
+| `Percentage` | decimal; nullable cuando el denominador es cero.                                                |
+| `MarketDate` | fecha ISO `YYYY-MM-DD`, sin hora.                                                               |
+| `Instant`    | timestamp UTC de ejecución u obtención.                                                         |
+| IDs          | `UserId`, `PortfolioId`, `InstrumentId`, `TransactionId`, `PreviewId`; no intercambiables.      |
 
 Reglas: cálculos con 50 dígitos significativos; cantidad `ROUND_DOWN` a ocho decimales; dinero `ROUND_HALF_UP` a dos. En HTTP se serializan como strings. No se acepta una entrada con escala excesiva: no se redondea silenciosamente.
 
@@ -124,7 +124,7 @@ No persiste ni emite transacciones. Toda la serie usa la misma moneda y base de 
 
 ## Errores de dominio
 
-`INVALID_MONEY`, `INVALID_SCALE`, `INSTRUMENT_NOT_TRADABLE`, `CURRENCY_MISMATCH`, `INSUFFICIENT_FUNDS`, `PREVIEW_EXPIRED`, `PREVIEW_ALREADY_USED`, `IDEMPOTENCY_CONFLICT`, `MARKET_DATA_UNAVAILABLE`, `NO_MARKET_SESSION`, `UNSUPPORTED_PRICE_BASIS`, `CORPORATE_ACTION_UNSUPPORTED`, `CORRUPT_LEDGER`.
+`INVALID_MONEY`, `INVALID_SCALE`, `INSTRUMENT_NOT_TRADABLE`, `CURRENCY_MISMATCH`, `PORTFOLIO_NOT_INITIALIZED`, `INSUFFICIENT_FUNDS`, `PREVIEW_EXPIRED`, `PREVIEW_ALREADY_USED`, `IDEMPOTENCY_CONFLICT`, `MARKET_DATA_UNAVAILABLE`, `NO_MARKET_SESSION`, `UNSUPPORTED_PRICE_BASIS`, `CORPORATE_ACTION_UNSUPPORTED`, `CORRUPT_LEDGER`.
 
 Los errores son resultados tipados o excepciones de dominio controladas; los adapters HTTP los traducen sin filtrar detalles internos.
 

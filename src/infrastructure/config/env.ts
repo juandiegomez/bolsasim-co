@@ -14,10 +14,26 @@ const databaseUrl = z.string().refine((value) => {
   }
 });
 
+const decimalAmount = z
+  .string()
+  .regex(
+    /^(0|[1-9][0-9]*)(\.[0-9]{1,2})$/,
+    "Expected an exact decimal amount with at most 2 decimals",
+  )
+  .refine((value) => value !== "0.00", "Expected a positive amount");
+
 const schema = z.object({
   DATABASE_URL: databaseUrl,
   APP_TIME_ZONE: z.literal("America/Bogota").default("America/Bogota"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  DEMO_USER_ID: z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+      "Expected a UUID",
+    )
+    .default("00000000-0000-0000-0000-000000000001"),
+  INITIAL_DEPOSIT_COP: decimalAmount.default("10000000.00"),
 });
 
 export class ConfigurationError extends Error {

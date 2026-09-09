@@ -26,6 +26,7 @@
     "db:stop": "docker compose stop db db-test",
     "db:check": "tsx scripts/database.ts check",
     "db:migrate": "tsx scripts/database.ts migrate",
+    "db:create": "tsx scripts/database.ts create",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

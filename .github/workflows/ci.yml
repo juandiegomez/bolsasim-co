@@ -45,6 +45,10 @@ jobs:
         run: |
           npm run db:check
           npm run db:migrate
+      - name: Prepare and migrate the runtime database for E2E
+        run: |
+          npm run db:create
+          npm run db:migrate
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
