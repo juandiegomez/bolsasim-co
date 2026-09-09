@@ -1,11 +1,14 @@
 import type { InstrumentId } from "./ids";
-import type { PriceBasis } from "./instrument";
+import type { Instrument, PriceBasis } from "./instrument";
 import type { Currency } from "./money";
 import type { MarketDate } from "./transaction";
 
+export type DataMode = "real" | "demo";
+export type DateResolution = "ON_OR_AFTER" | "ON_OR_BEFORE";
+
 export interface MarketDataMetadata {
   readonly providerId: string;
-  readonly mode: "real" | "demo";
+  readonly mode: DataMode;
   readonly retrievedAt: Date;
   readonly priceBasis: PriceBasis;
   readonly coverageFrom: MarketDate | null;
@@ -22,4 +25,24 @@ export interface PriceObservation {
   readonly close: string;
   readonly currency: Currency;
   readonly metadata: MarketDataMetadata;
+}
+
+// Market data contract § Operaciones: inclusive ascending series without
+// duplicates, positive values, single currency and price basis.
+export interface HistoricalSeries {
+  readonly instrumentId: InstrumentId;
+  readonly observations: readonly PriceObservation[];
+  readonly metadata: MarketDataMetadata;
+}
+
+// Market data contract § InstrumentMetadata: reference metadata plus the
+// source metadata that carries the real/demo provenance.
+export interface InstrumentRecord {
+  readonly instrument: Instrument;
+  readonly metadata: MarketDataMetadata;
+}
+
+export interface Page<T> {
+  readonly items: readonly T[];
+  readonly nextCursor: string | null;
 }

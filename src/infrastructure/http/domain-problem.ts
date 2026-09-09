@@ -16,15 +16,65 @@ const STATUS_BY_DOMAIN_CODE: Record<
     title: "Bad Request",
     message: "La escala enviada no es válida; no se redondea silenciosamente.",
   },
+  INVALID_QUERY: {
+    status: 400,
+    title: "Bad Request",
+    message: "Los parámetros de la solicitud son inválidos.",
+  },
+  INVALID_DATE_RANGE: {
+    status: 400,
+    title: "Bad Request",
+    message: "El rango de fechas enviado es inválido.",
+  },
   CURRENCY_MISMATCH: {
     status: 400,
     title: "Bad Request",
     message: "La moneda enviada no es soportada en el MVP.",
   },
+  UNSUPPORTED_PRICE_BASIS: {
+    status: 400,
+    title: "Bad Request",
+    message: "La base de precio solicitada no es soportada.",
+  },
   PORTFOLIO_NOT_INITIALIZED: {
     status: 404,
     title: "Not Found",
     message: "El portafolio aún no ha sido inicializado.",
+  },
+  INSTRUMENT_NOT_FOUND: {
+    status: 404,
+    title: "Not Found",
+    message: "El instrumento solicitado no existe.",
+  },
+  NO_MARKET_DATA: {
+    status: 404,
+    title: "Not Found",
+    message: "No existen datos de mercado para la solicitud.",
+  },
+  NO_MARKET_SESSION: {
+    status: 404,
+    title: "Not Found",
+    message: "Ninguna sesión de mercado satisface la resolución solicitada.",
+  },
+  COVERAGE_INSUFFICIENT: {
+    status: 422,
+    title: "Unprocessable Entity",
+    message: "El dataset no cubre el rango o la fecha solicitada.",
+  },
+  INVALID_PROVIDER_DATA: {
+    status: 502,
+    title: "Bad Gateway",
+    message: "Los datos del proveedor de mercado son inconsistentes.",
+  },
+  PROVIDER_UNAVAILABLE: {
+    status: 503,
+    title: "Service Unavailable",
+    message: "El proveedor de mercado no está disponible; intenta más tarde.",
+  },
+  RATE_LIMITED: {
+    status: 429,
+    title: "Too Many Requests",
+    message: "El proveedor de mercado limitó las consultas; intenta más tarde.",
   },
   CORRUPT_LEDGER: {
     status: 500,

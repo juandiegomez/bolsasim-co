@@ -10,7 +10,7 @@ const valid = {
 };
 
 describe("FND-001: validated configuration", () => {
-  it("returns typed defaults including Slice 1 reserved settings", () => {
+  it("returns typed defaults including Slice 1 and market settings", () => {
     expect(
       parseEnvironment({ ...valid, INITIAL_DEPOSIT_COP: "999.99" }),
     ).toEqual({
@@ -19,6 +19,9 @@ describe("FND-001: validated configuration", () => {
       LOG_LEVEL: "info",
       DEMO_USER_ID: "00000000-0000-0000-0000-000000000001",
       INITIAL_DEPOSIT_COP: "999.99",
+      MARKET_DATA_ADAPTER: "mock",
+      MARKET_DATA_RECENT_TTL_SECONDS: 300,
+      MARKET_DATA_HISTORICAL_TTL_SECONDS: 86400,
     });
   });
   it.each([
@@ -31,6 +34,13 @@ describe("FND-001: validated configuration", () => {
     { ...valid, INITIAL_DEPOSIT_COP: "10.000000" },
     { ...valid, INITIAL_DEPOSIT_COP: "0.00" },
     { ...valid, INITIAL_DEPOSIT_COP: "abc" },
+    { ...valid, MARKET_DATA_ADAPTER: "scraper" },
+    { ...valid, MARKET_DATA_ADAPTER: "file" },
+    {
+      ...valid,
+      MARKET_DATA_ADAPTER: "mock",
+      MARKET_DATA_RECENT_TTL_SECONDS: "0",
+    },
   ])("rejects invalid configuration without echoing values: %j", (input) => {
     expect(() => parseEnvironment(input)).toThrow(ConfigurationError);
     try {

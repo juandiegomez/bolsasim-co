@@ -1,0 +1,33 @@
+{
+  "manifestVersion": 1,
+  "providerId": "bolsasim-demo",
+  "mode": "demo",
+  "source": {
+    "name": "Fixture determinista de BolsaSim CO",
+    "url": null,
+    "owner": "Proyecto BolsaSim CO",
+    "terms": "Datos inventados con fines educativos; no representan precios reales."
+  },
+  "downloadedAt": "2026-09-01T00:00:00.000Z",
+  "cutoffDate": "2026-08-28",
+  "files": {
+    "instruments.json": "d5a1adff03023dde01cc72fa133631a883d0b0f4d2a340d2e94c834a541399ec",
+    "prices.json": "3c033719474fb897de70ac1149043a8833c5721e6b44bb4f93cdc34e42bd6e29"
+  },
+  "timezone": "America/Bogota",
+  "currency": "COP",
+  "frequency": "daily",
+  "priceDefinition": {
+    "field": "close",
+    "basis": ["UNADJUSTED_CLOSE"],
+    "adjustment": "Sin ajustes; los valores son inventados."
+  },
+  "transformations": [
+    "Generación determinista con precios crecientes 100 → 120."
+  ],
+  "limitations": [
+    "Datos ficticios etiquetados demo; nunca presentados como reales.",
+    "La sesión 2026-08-12 se omitió a propósito para modelar un hueco interno.",
+    "DEMOUSD opera en USD y no es operable en el MVP."
+  ]
+}

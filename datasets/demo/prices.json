@@ -1,0 +1,292 @@
+{
+  "observations": [
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-03",
+      "close": "100.00",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-04",
+      "close": "101.11",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-05",
+      "close": "102.22",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-06",
+      "close": "105.12500000",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-07",
+      "close": "104.44",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-10",
+      "close": "105.56",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-11",
+      "close": "106.67",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-13",
+      "close": "107.78",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-14",
+      "close": "108.89",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-17",
+      "close": "112.34567890",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-18",
+      "close": "111.11",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-19",
+      "close": "112.22",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-20",
+      "close": "113.33",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-21",
+      "close": "114.44",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-24",
+      "close": "115.56",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-25",
+      "close": "116.67",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-26",
+      "close": "117.78",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-27",
+      "close": "118.89",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "sessionDate": "2026-08-28",
+      "close": "120.00",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0002-4a02-9a02-000000000002",
+      "sessionDate": "2026-08-24",
+      "close": "42.50",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0002-4a02-9a02-000000000002",
+      "sessionDate": "2026-08-25",
+      "close": "43.00000000",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0002-4a02-9a02-000000000002",
+      "sessionDate": "2026-08-26",
+      "close": "43.63",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0002-4a02-9a02-000000000002",
+      "sessionDate": "2026-08-27",
+      "close": "44.19",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0002-4a02-9a02-000000000002",
+      "sessionDate": "2026-08-28",
+      "close": "44.75",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-03",
+      "close": "8.00",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-04",
+      "close": "8.02",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-05",
+      "close": "8.04",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-06",
+      "close": "8.07",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-07",
+      "close": "8.09",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-10",
+      "close": "8.11",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-11",
+      "close": "8.13",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-13",
+      "close": "8.16",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-14",
+      "close": "8.18",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-17",
+      "close": "8.20",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-18",
+      "close": "8.22",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-19",
+      "close": "8.24",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-20",
+      "close": "8.27",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-21",
+      "close": "8.29",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-24",
+      "close": "8.31",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-25",
+      "close": "8.33",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-26",
+      "close": "8.36",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-27",
+      "close": "8.38",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "sessionDate": "2026-08-28",
+      "close": "8.40",
+      "currency": "COP"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0004-4a04-9a04-000000000004",
+      "sessionDate": "2026-08-24",
+      "close": "15.20",
+      "currency": "USD"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0004-4a04-9a04-000000000004",
+      "sessionDate": "2026-08-25",
+      "close": "15.38",
+      "currency": "USD"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0004-4a04-9a04-000000000004",
+      "sessionDate": "2026-08-26",
+      "close": "15.55",
+      "currency": "USD"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0004-4a04-9a04-000000000004",
+      "sessionDate": "2026-08-27",
+      "close": "15.72",
+      "currency": "USD"
+    },
+    {
+      "instrumentId": "a1b2c3d4-0004-4a04-9a04-000000000004",
+      "sessionDate": "2026-08-28",
+      "close": "15.90",
+      "currency": "USD"
+    }
+  ]
+}
