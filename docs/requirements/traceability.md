@@ -9,20 +9,20 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 | PORT-003  | Compra atómica e idempotente     | Product § J2; Domain § Buy           | API previews/confirm          | unit + concurrency + E2E | yes       | no          | no       |
 | PORT-004  | Posición y valoración incompleta | Domain § Projections                 | API positions                 | unit + integration + UI  | yes       | no          | no       |
 | PORT-005  | Evolución fechada                | Product § J1                         | API evolution                 | unit + E2E               | yes       | no          | no       |
-| INST-001  | Instrumento abstracto            | Domain § Instrument                  | Market data + API instruments | contract + E2E           | yes       | no          | no       |
+| INST-001  | Instrumento abstracto            | Domain § Instrument                  | Market data + API instruments | contract + E2E           | yes       | yes         | partial  |
 | HIST-001  | Simulación sin efectos           | Product § J3; Domain § Service       | API simulations               | unit + integration       | yes       | no          | no       |
 | HIST-002  | Resolución de sesiones           | Data § Date resolution               | Market data + API simulations | unit + contract          | yes       | no          | no       |
 | HIST-003  | Matemática histórica             | Domain § Historical simulation       | API simulations               | unit + E2E               | yes       | no          | no       |
 | FIN-001   | Decimal y moneda explícita       | Domain § Value objects; ADR-0004     | todos                         | static + unit + DB       | yes       | partial     | partial  |
 | FIN-002   | Escalas y redondeo               | Domain § Precision; ADR-0004         | esquemas decimales            | boundary unit tests      | yes       | partial     | partial  |
 | FIN-003   | Fees cero y retorno bruto        | Product § Reglas                     | buy/simulation                | unit + UI                | yes       | no          | no       |
-| MDATA-001 | Metadata y procedencia           | Data § Responses                     | API market schemas            | adapter contract         | yes       | no          | no       |
-| MDATA-002 | Fallos explícitos                | Data § Errors                        | Problem response              | contract + UI            | yes       | no          | no       |
-| UI-001    | Estados completos                | Product § Experience                 | responses/errors              | component + E2E          | yes       | no          | no       |
-| UI-002    | Avisos y etiqueta demo           | Product § Disclaimer                 | market metadata               | accessibility + E2E      | yes       | no          | no       |
+| MDATA-001 | Metadata y procedencia           | Data § Responses                     | API market schemas            | adapter contract         | yes       | yes         | yes      |
+| MDATA-002 | Fallos explícitos                | Data § Errors                        | Problem response              | contract + UI            | yes       | yes         | partial  |
+| UI-001    | Estados completos                | Product § Experience                 | responses/errors              | component + E2E          | yes       | partial     | partial  |
+| UI-002    | Avisos y etiqueta demo           | Product § Disclaimer                 | market metadata               | accessibility + E2E      | yes       | partial     | partial  |
 | SEC-001   | Autoridad del servidor           | Architecture § Trust                 | API previews/confirm          | tampering integration    | yes       | no          | no       |
 | OBS-001   | Correlación y errores            | Architecture § Observability         | `X-Request-Id`, Problem       | integration              | yes       | partial     | partial  |
-| PERF-001  | Caché de mercado                 | ADR-0007                             | MarketDataProvider wrapper    | unit + integration       | yes       | no          | no       |
+| PERF-001  | Caché de mercado                 | ADR-0007                             | MarketDataProvider wrapper    | unit + integration       | yes       | yes         | yes      |
 | SDD-001   | Specs antes de producción        | AGENTS.md                            | docs                          | review checklist         | yes       | partial     | partial  |
 
 ## Adición de Fase 1
@@ -46,6 +46,19 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 | PORT-002 | yes         | partial  | Reconstrucción y orden determinista verificados (`tests/unit/projector.test.ts`, `tests/integration/portfolio.test.ts`); reconstrucción con BUY llega con el Slice 3.                              |
 | FIN-002  | partial     | partial  | Escalas money 2 / quantity 8 con boundary tests en `tests/unit/money.test.ts` y esquemas `numeric(24,2)`/`numeric(24,8)` verificados; fraccionamiento de compras en Slice 3.                       |
 | UI-001   | partial     | partial  | Estados loading/inicialización/ready/error del dashboard en `tests/e2e/foundation.spec.ts` y `tests/e2e/portfolio.spec.ts`; resto de vistas en slices 2–4.                                         |
+
+## Adición de Fase 1 — Slice 2
+
+**INST-001/MDATA-001/002/PERF-001 — Explorar y detalle:** puerto `MarketDataProvider` con las seis operaciones del contrato de datos de mercado y cursor opaco. Adapter de archivo único que sirve el dataset demo commiteado (`datasets/demo`, manifiesto con checksum SHA-256 por archivo, etiqueta demo) y está listo para datasets reales vía `MARKET_DATA_ADAPTER=file` (ADR-0005 sigue Proposed). Rutas `/instruments` (búsqueda/listado paginado), `/instruments/{id}` (metadata + `dataMode`), `/instruments/{id}/price` (último cierre con fecha/base/moneda) e `/instruments/{id}/history` (serie inclusiva validada). Caché en proceso con TTL 300 s/86 400 s y ventana negativa breve para fallos reintentables (ADR-0007). UI de exploración y detalle con Recharts y tabla accesible, cinco estados y avisos demo persistentes. Límites: simulación histórica (HIST-001–003) y compras (Slice 3) pendientes; `getPriceOnDate` implementado en el puerto sin ruta pública.
+
+| ID        | Implemented | Verified | Evidencia y límite                                                                                                                                                                    |
+| --------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| INST-001  | yes         | partial  | `tests/unit/market-dataset.test.ts`, `tests/contract/market-http.test.ts`, `tests/e2e/market.spec.ts`; "solo acciones COP activas operables" se completa con las compras del Slice 3. |
+| MDATA-001 | yes         | yes      | Metadata completa en respuestas (fuente, modo, sesión, moneda, obtención, base) verificada en unit, contract y E2E.                                                                   |
+| MDATA-002 | yes         | partial  | Fallos controlados sin fallback a mock ni arrays vacíos en unit, contract y E2E; el smoke del proveedor real llega al aprobar ADR-0005.                                               |
+| PERF-001  | yes         | yes      | `tests/unit/market-cache.test.ts` (TTL con reloj fijo, ventana negativa), cursor/limit en contract y "Cargar más" en E2E; la UI no se bloquea durante I/O.                            |
+| UI-001    | partial     | partial  | Cinco estados navegables en exploración/detalle (`tests/e2e/market.spec.ts`); otras experiencias en slices 3–4.                                                                       |
+| UI-002    | partial     | partial  | Etiqueta demo, fecha/base/limitaciones visibles y aviso persistente en E2E de mercado; completar accesibilidad automatizada de otras vistas.                                          |
 
 ## Reglas de actualización
 

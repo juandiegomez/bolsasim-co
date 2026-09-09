@@ -4,7 +4,7 @@ MVP de un simulador educativo de inversiones orientado al mercado colombiano. Pe
 
 ## Estado
 
-El **Slice 0 — Foundation** está verificado: aplicación Next.js ejecutable, configuración validada, health check, PostgreSQL/Drizzle, migraciones, suite completa y CI en verde. El **Slice 1 — Inicialización y saldo** materializa el ledger append-only, la inicialización idempotente de COP 10.000.000 y el dashboard de saldo. Compras, mercado e histórico todavía no están implementados; no hay proveedor de mercado aprobado (ADR-0005).
+El **Slice 0 — Foundation** está verificado: aplicación Next.js ejecutable, configuración validada, health check, PostgreSQL/Drizzle, migraciones, suite completa y CI en verde. El **Slice 1 — Inicialización y saldo** materializa el ledger append-only, la inicialización idempotente de COP 10.000.000 y el dashboard de saldo. El **Slice 2 — Explorar y detalle** materializa el puerto `MarketDataProvider` con dataset demo etiquetado, búsqueda paginada, detalle con último cierre, histórico gráfico/tabular y caché en proceso. Compras y simulador histórico todavía no están implementados; no hay proveedor real aprobado (ADR-0005).
 
 Decisiones iniciales:
 
@@ -50,9 +50,11 @@ Health: [GET /api/v1/health](http://127.0.0.1:3000/api/v1/health). Devuelve `sta
 
 El portafolio expone `POST /api/v1/portfolios/initialize` (idempotente; crea usuario local, portafolio y el depósito inicial único de COP 10.000.000) y `GET /api/v1/portfolio` (snapshot derivado del ledger). La página inicial muestra los estados de carga, inicialización, saldo y error.
 
+El mercado expone `GET /api/v1/instruments` (listado/búsqueda con cursor y límite), `GET /api/v1/instruments/{id}`, `/price` (último cierre) y `/history` (serie diaria). La fuente activa es el dataset demo commiteado en `datasets/demo` (manifiesto con checksums); conmutar a `MARKET_DATA_ADAPTER=file` habilita un dataset real cuando ADR-0005 se apruebe. El detalle en `/instruments` muestra metadata, último cierre e histórico gráfico/tabular con la etiqueta demo persistente.
+
 ### Configuración y bases locales
 
-`DATABASE_URL` es obligatoria. Una URL inválida, otra zona horaria, un LOG_LEVEL no admitido o valores inválidos de `DEMO_USER_ID`/`INITIAL_DEPOSIT_COP` impiden el arranque con `CONFIGURATION_INVALID` y nombres de variables, sin imprimir valores. APP_TIME_ZONE tiene default America/Bogota, LOG_LEVEL default info, y las variables de depósito y usuario local tienen los defaults documentados en `.env.example`. Las variables de mercado están reservadas y no activan funcionalidades.
+`DATABASE_URL` es obligatoria. Una URL inválida, otra zona horaria, un LOG_LEVEL no admitido o valores inválidos de `DEMO_USER_ID`/`INITIAL_DEPOSIT_COP`/`MARKET_DATA_*` impiden el arranque con `CONFIGURATION_INVALID` y nombres de variables, sin imprimir valores. APP_TIME_ZONE tiene default America/Bogota, LOG_LEVEL default info, y las variables de depósito, usuario local y mercado tienen los defaults documentados en `.env.example`. El adapter de mercado es `mock` por defecto (dataset demo); `file` exige `MARKET_DATA_FILE_PATH` y `MARKET_DATA_MANIFEST_PATH`.
 
 Compose publica solo en 127.0.0.1: desarrollo en 5432 (`bolsasim`, volumen persistente), tests en 5433 (`bolsasim_test`, almacenamiento temporal). Las contraseñas del ejemplo son exclusivamente locales. Los tests exigen TEST_DATABASE_URL con nombre terminado en `_test`; no usan la URL de desarrollo como fallback. Si los puertos están ocupados, modifica el mapeo y las URLs locales coherentemente.
 
@@ -80,7 +82,7 @@ Errores DB: `DATABASE_UNAVAILABLE` o `MIGRATION_FAILED` con exit code 1. Verific
 
 ### Alcance y evidencia
 
-Consulta [ADR-0009](docs/adr/0009-slice-zero-foundation.md) para package manager, liveness y migración sin esquema de negocio, [validación del Slice 0](docs/testing/slice-zero-validation.md) y [validación del Slice 1](docs/testing/slice-one-validation.md) para evidencia y límites. ADR-0005 permanece abierto; no bloquea la base ni el ledger.
+Consulta [ADR-0009](docs/adr/0009-slice-zero-foundation.md) para package manager, liveness y migración sin esquema de negocio, [validación del Slice 0](docs/testing/slice-zero-validation.md), [validación del Slice 1](docs/testing/slice-one-validation.md) y [validación del Slice 2](docs/testing/slice-two-validation.md) para evidencia y límites. ADR-0005 permanece abierto; el mercado opera con datos demo etiquetados.
 
 ## Aviso
 
