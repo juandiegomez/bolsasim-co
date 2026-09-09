@@ -10,13 +10,15 @@ const valid = {
 };
 
 describe("FND-001: validated configuration", () => {
-  it("returns typed defaults without reserved business settings", () => {
+  it("returns typed defaults including Slice 1 reserved settings", () => {
     expect(
-      parseEnvironment({ ...valid, INITIAL_DEPOSIT_COP: "unused" }),
+      parseEnvironment({ ...valid, INITIAL_DEPOSIT_COP: "999.99" }),
     ).toEqual({
       ...valid,
       APP_TIME_ZONE: "America/Bogota",
       LOG_LEVEL: "info",
+      DEMO_USER_ID: "00000000-0000-0000-0000-000000000001",
+      INITIAL_DEPOSIT_COP: "999.99",
     });
   });
   it.each([
@@ -25,6 +27,10 @@ describe("FND-001: validated configuration", () => {
     { DATABASE_URL: "postgresql://localhost" },
     { ...valid, LOG_LEVEL: "verbose" },
     { ...valid, APP_TIME_ZONE: "UTC" },
+    { ...valid, DEMO_USER_ID: "not-a-uuid" },
+    { ...valid, INITIAL_DEPOSIT_COP: "10.000000" },
+    { ...valid, INITIAL_DEPOSIT_COP: "0.00" },
+    { ...valid, INITIAL_DEPOSIT_COP: "abc" },
   ])("rejects invalid configuration without echoing values: %j", (input) => {
     expect(() => parseEnvironment(input)).toThrow(ConfigurationError);
     try {

@@ -29,12 +29,16 @@ describe("FND-001: real PostgreSQL connection and migrations", () => {
     const after = await database.db.execute(
       sql`select id, hash, created_at from drizzle.__drizzle_migrations order by id`,
     );
-    expect(before.rows).toHaveLength(1);
+    expect(before.rows.length).toBeGreaterThanOrEqual(1);
     expect(after.rows).toEqual(before.rows);
     const tables = await database.db.execute(
-      sql`select tablename from pg_tables where schemaname = 'public'`,
+      sql`select tablename from pg_tables where schemaname = 'public' order by tablename`,
     );
-    expect(tables.rows).toEqual([]);
+    expect(tables.rows.map((row) => row.tablename)).toEqual([
+      "portfolios",
+      "transactions",
+      "users",
+    ]);
   });
   it("FIN-001 partial: numeric round-trip remains an exact string", async () => {
     const result = await database.db.execute(
