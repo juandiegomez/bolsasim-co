@@ -30,6 +30,11 @@
 - `build`: aprobado; páginas `/instruments` y `/instruments/[id]` y cuatro rutas HTTP materializadas.
 - `test:e2e`: 10 tests aprobados contra el servidor real en 3100.
 
+## Gates de CI
+
+- Rama: runs `34408239276` (pull_request) y `34408234269` (push) aprobados.
+- `main` tras el merge (PR #2, squash): run `34408398602` aprobado con PostgreSQL 17 real, `npm test`, build y E2E completos.
+
 ## Cambios operativos
 
 - Config activa `MARKET_DATA_ADAPTER`, `MARKET_DATA_FILE_PATH`, `MARKET_DATA_MANIFEST_PATH`, `MARKET_DATA_RECENT_TTL_SECONDS` (300) y `MARKET_DATA_HISTORICAL_TTL_SECONDS` (86 400); las cadenas vacías en paths se tratan como ausentes y `adapter=file` exige ambos paths.
