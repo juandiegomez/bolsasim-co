@@ -1,0 +1,40 @@
+{
+  "instruments": [
+    {
+      "id": "a1b2c3d4-0001-4a01-9a01-000000000001",
+      "symbol": "DEMO1",
+      "name": "Demo Acciones Primera",
+      "exchange": "BVC",
+      "currency": "COP",
+      "type": "EQUITY",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "a1b2c3d4-0002-4a02-9a02-000000000002",
+      "symbol": "DEMO2",
+      "name": "Demo Acciones Breve",
+      "exchange": "BVC",
+      "currency": "COP",
+      "type": "EQUITY",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "a1b2c3d4-0003-4a03-9a03-000000000003",
+      "symbol": "DEMO3",
+      "name": "Demo Acciones Inactiva",
+      "exchange": "BVC",
+      "currency": "COP",
+      "type": "EQUITY",
+      "status": "INACTIVE"
+    },
+    {
+      "id": "a1b2c3d4-0004-4a04-9a04-000000000004",
+      "symbol": "DEMOUSD",
+      "name": "Demo Dolarizada",
+      "exchange": "BVC",
+      "currency": "USD",
+      "type": "EQUITY",
+      "status": "ACTIVE"
+    }
+  ]
+}

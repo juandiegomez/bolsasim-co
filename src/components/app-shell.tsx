@@ -11,6 +11,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link className="brand" href="/">
           BolsaSim CO
         </Link>
+        <nav aria-label="Navegación principal">
+          <Link href="/instruments">Explorar</Link>
+        </nav>
         <span>Simulador educativo</span>
       </header>
       <main id="main" tabIndex={-1}>

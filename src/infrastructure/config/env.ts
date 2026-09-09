@@ -22,6 +22,12 @@ const decimalAmount = z
   )
   .refine((value) => value !== "0.00", "Expected a positive amount");
 
+const optionalPath = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().min(1).optional(),
+);
+
 const schema = z.object({
   DATABASE_URL: databaseUrl,
   APP_TIME_ZONE: z.literal("America/Bogota").default("America/Bogota"),
@@ -34,6 +40,36 @@ const schema = z.object({
     )
     .default("00000000-0000-0000-0000-000000000001"),
   INITIAL_DEPOSIT_COP: decimalAmount.default("10000000.00"),
+  MARKET_DATA_ADAPTER: z.enum(["mock", "file"]).default("mock"),
+  MARKET_DATA_FILE_PATH: optionalPath,
+  MARKET_DATA_MANIFEST_PATH: optionalPath,
+  MARKET_DATA_RECENT_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(300),
+  MARKET_DATA_HISTORICAL_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(86400),
+});
+
+const schemaWithDatasetRequirements = schema.superRefine((value, ctx) => {
+  if (value.MARKET_DATA_ADAPTER === "file") {
+    for (const field of [
+      "MARKET_DATA_FILE_PATH",
+      "MARKET_DATA_MANIFEST_PATH",
+    ] as const) {
+      if (!value[field]) {
+        ctx.addIssue({
+          code: "custom",
+          path: [field],
+          message: `${field} is required when MARKET_DATA_ADAPTER=file`,
+        });
+      }
+    }
+  }
 });
 
 export class ConfigurationError extends Error {
@@ -49,7 +85,7 @@ export type Environment = z.infer<typeof schema>;
 export function parseEnvironment(
   input: Record<string, string | undefined>,
 ): Environment {
-  const parsed = schema.safeParse(input);
+  const parsed = schemaWithDatasetRequirements.safeParse(input);
   if (!parsed.success) {
     throw new ConfigurationError([
       ...new Set(parsed.error.issues.map((issue) => String(issue.path[0]))),
