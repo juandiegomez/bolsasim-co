@@ -26,6 +26,11 @@
 - `build`: aprobado; rutas `/api/v1/portfolio` y `/api/v1/portfolios/initialize` materializadas.
 - `test:e2e`: 6 tests aprobados contra el servidor real en 3100 con PostgreSQL local.
 
+## Gates de CI
+
+- Rama: run `34402970154` (pull_request) y `34402953756` (push) aprobados.
+- `main` tras el merge (PR #1, squash): run `34403166071` aprobado con PostgreSQL 17 real, `npm test`, build y E2E completos.
+
 ## Cambios operativos
 
 - Migración `0001_ledger.sql` crea `users`, `portfolios` y `transactions` con los índices de ADR-0003; el journal se reejecuta sin cambios.
@@ -37,4 +42,3 @@
 - BUY/SELL siguen reservados: un ledger que contenga BUY retorna `CORRUPT_LEDGER` explícito hasta implementar su proyección en el Slice 3.
 - La serialización de posiciones (`Position`, `Instrument`, `PriceObservation`) no está implementada; `positions` siempre es `[]` en este slice (contrato ya publicado en OpenAPI).
 - `GET /portfolio/transactions` (ledger paginado) quedó diferido al Slice 3, cuando existan movimientos reales que paginar.
-- La ejecución en GitHub Actions de esta rama queda registrada al abrir el PR; el merge a `main` requiere ese run en verde.
