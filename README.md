@@ -4,7 +4,7 @@ MVP de un simulador educativo de inversiones orientado al mercado colombiano. Pe
 
 ## Estado
 
-El **Slice 0 — Foundation** está verificado: aplicación Next.js ejecutable, configuración validada, health check, PostgreSQL/Drizzle, migraciones, suite completa y CI en verde. El **Slice 1 — Inicialización y saldo** materializa el ledger append-only, la inicialización idempotente de COP 10.000.000 y el dashboard de saldo. El **Slice 2 — Explorar y detalle** materializa el puerto `MarketDataProvider` con dataset demo etiquetado, búsqueda paginada, detalle con último cierre, histórico gráfico/tabular y caché en proceso. Compras y simulador histórico todavía no están implementados; no hay proveedor real aprobado (ADR-0005).
+El **Slice 0 — Foundation** está verificado: aplicación Next.js ejecutable, configuración validada, health check, PostgreSQL/Drizzle, migraciones, suite completa y CI en verde. El **Slice 1 — Inicialización y saldo** materializa el ledger append-only, la inicialización idempotente de COP 10.000.000 y el dashboard de saldo. El **Slice 2 — Explorar y detalle** materializa el puerto `MarketDataProvider` con dataset demo etiquetado, búsqueda paginada, detalle con último cierre, histórico gráfico/tabular y caché en proceso. El **Slice 3 — Compra y dashboard** materializa previews idempotentes de compra, posiciones valoradas, movimientos del ledger y evolución diaria con aviso de incompletos. El simulador histórico no está implementado; no hay proveedor real aprobado (ADR-0005).
 
 Decisiones iniciales:
 
@@ -52,6 +52,8 @@ El portafolio expone `POST /api/v1/portfolios/initialize` (idempotente; crea usu
 
 El mercado expone `GET /api/v1/instruments` (listado/búsqueda con cursor y límite), `GET /api/v1/instruments/{id}`, `/price` (último cierre) y `/history` (serie diaria). La fuente activa es el dataset demo commiteado en `datasets/demo` (manifiesto con checksums); conmutar a `MARKET_DATA_ADAPTER=file` habilita un dataset real cuando ADR-0005 se apruebe. El detalle en `/instruments` muestra metadata, último cierre e histórico gráfico/tabular con la etiqueta demo persistente.
 
+La compra simulada expone `POST /api/v1/buy-previews` (preview de cinco minutos con cantidad, débito, remanente y fees cero) y `POST /api/v1/buy-previews/{previewId}/confirm` con header `Idempotency-Key` (201 primera vez, 200 en replay; 409 ante conflictos; 410 si venció). El portafolio expone además `GET /api/v1/portfolio/evolution` (evolución diaria con arrastre de cierre; rango máximo 365 días) y `GET /api/v1/portfolio/transactions` (ledger paginado). El dashboard muestra métricas, posiciones, movimientos y evolución; un valor incompleto nunca se representa como cero.
+
 ### Configuración y bases locales
 
 `DATABASE_URL` es obligatoria. Una URL inválida, otra zona horaria, un LOG_LEVEL no admitido o valores inválidos de `DEMO_USER_ID`/`INITIAL_DEPOSIT_COP`/`MARKET_DATA_*` impiden el arranque con `CONFIGURATION_INVALID` y nombres de variables, sin imprimir valores. APP_TIME_ZONE tiene default America/Bogota, LOG_LEVEL default info, y las variables de depósito, usuario local y mercado tienen los defaults documentados en `.env.example`. El adapter de mercado es `mock` por defecto (dataset demo); `file` exige `MARKET_DATA_FILE_PATH` y `MARKET_DATA_MANIFEST_PATH`.
@@ -74,7 +76,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`npm test` ejecuta unitarias, integración PostgreSQL y contrato OpenAPI. También existen `test:unit`, `test:integration` y `test:contract` para diagnóstico. `test:e2e` inicia el build de producción en 127.0.0.1:3100, comprueba shell/teclado/responsive y HTTP, y detiene su servidor. El puerto debe estar libre. En Linux, instalar Chromium con `npx playwright install --with-deps chromium`.
+`npm test` ejecuta unitarias, integración PostgreSQL y contrato OpenAPI. También existen `test:unit`, `test:integration` y `test:contract` para diagnóstico. `test:e2e` inicia el build de producción en 127.0.0.1:3100, comprueba shell/teclado/responsive, HTTP, exploración de mercado y el flujo completo de compra, y detiene su servidor. El puerto debe estar libre. En Linux, instalar Chromium con `npx playwright install --with-deps chromium`. Para aislar el estado, E2E usa la base dedicada `E2E_DATABASE_URL` (cópiala desde `.env.example` con `db:create`); el `globalSetup` la migra y trunca al iniciar la suite, y la base de desarrollo nunca es mutada por pruebas.
 
 `npm run format` aplica Prettier; `format:check` solo verifica. `lint` incluye ESLint y Redocly OpenAPI; `typecheck` genera los tipos de rutas de Next.js antes de ejecutar TypeScript. CI en `.github/workflows/ci.yml` usa PostgreSQL real y ejecuta estos gates desde `npm ci`.
 
@@ -82,7 +84,7 @@ Errores DB: `DATABASE_UNAVAILABLE` o `MIGRATION_FAILED` con exit code 1. Verific
 
 ### Alcance y evidencia
 
-Consulta [ADR-0009](docs/adr/0009-slice-zero-foundation.md) para package manager, liveness y migración sin esquema de negocio, [validación del Slice 0](docs/testing/slice-zero-validation.md), [validación del Slice 1](docs/testing/slice-one-validation.md) y [validación del Slice 2](docs/testing/slice-two-validation.md) para evidencia y límites. ADR-0005 permanece abierto; el mercado opera con datos demo etiquetados.
+Consulta [ADR-0009](docs/adr/0009-slice-zero-foundation.md) para package manager, liveness y migración sin esquema de negocio, [validación del Slice 0](docs/testing/slice-zero-validation.md), [Slice 1](docs/testing/slice-one-validation.md), [Slice 2](docs/testing/slice-two-validation.md) y [Slice 3](docs/testing/slice-three-validation.md) para evidencia y límites. ADR-0005 permanece abierto; el mercado opera con datos demo etiquetados.
 
 ## Aviso
 

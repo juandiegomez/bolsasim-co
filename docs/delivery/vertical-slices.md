@@ -43,6 +43,19 @@ Implementar formulario independiente, resolución direccional de fechas, calcula
 
 Aceptación: fixture 100→120 produce 20%; fin de semana resuelve correctamente; base homogénea; rango/cobertura/datos faltantes controlados; snapshot del ledger no cambia.
 
+## Slice 5 — Escenarios pedagógicos
+
+**IDs:** PED-001, PED-002, PORT-002, SEC-001.
+
+Implementar escenarios locales archivables, reinicio de práctica y anulación
+reversible de compras. No borra movimientos: registra `VOID_BUY`, reconstruye
+las proyecciones y conserva ejemplos de clase. ADR-0010 define la decisión.
+
+Aceptación: deshacer una compra restaura efectivo y posición sin borrar el
+historial; doble anulación falla explícitamente; reiniciar crea una práctica
+nueva en COP 10.000.000 y archiva la anterior; pruebas de proyección,
+integración y E2E pasan.
+
 ## Definition of Ready por slice
 
 - IDs y criterios sin decisiones pendientes;
@@ -61,4 +74,4 @@ Aceptación: fixture 100→120 produce 20%; fin de semana resuelve correctamente
 
 ## Orden y bloqueos
 
-El orden previsto es 0 → 1 → 2 → 3 → 4. Puede desarrollarse el slice 2 con mock, pero no aceptarse para MVP hasta resolver ADR-0005. La compra depende de cotizaciones confiables del slice 2. No se inicia una venta ni otro activo como trabajo preparatorio.
+El orden previsto es 0 → 1 → 2 → 3 → 4 → 5. Puede desarrollarse el slice 2 con mock, pero no aceptarse para MVP hasta resolver ADR-0005. La compra depende de cotizaciones confiables del slice 2. No se inicia una venta ni otro activo como trabajo preparatorio.

@@ -59,16 +59,22 @@ Movimiento inmutable:
 ```text
 id, portfolioId, type, instrumentId?, quantity?, unitPrice?,
 grossAmount, fees, currency, executedAt, marketSessionDate?,
-source, idempotencyKey?, createdAt
+source, idempotencyKey?, createdAt, ledgerSequence, marketData?
 ```
+
+`ledgerSequence` es el orden de append autoritativo del ledger (ADR-0003): el proyector lo usa como desempate cuando `executedAt`/`createdAt` coinciden. El `BUY` conserva la metadata completa del mercado usado (`marketData`) y la clave de idempotencia que lo produjo.
 
 Tipos conceptuales: `INITIAL_DEPOSIT`, `BUY`, `SELL`. Para depósito, instrumento/cantidad/precio son nulos. Para compra son obligatorios y `grossAmount = roundMoney(quantity × unitPrice)`. `SELL` está reservado y se rechaza hasta tener requirement y política de costo aprobados.
 
-`source` distingue `SYSTEM_INITIALIZATION`, `USER_SIMULATION` y metadata del mercado. El ledger de compra conserva la procedencia y base del precio usado.
+`source` distingue `SYSTEM_INITIALIZATION` y `USER_SIMULATION`. Una compra
+conserva además `marketData` inmutable (`providerId`, `mode`, `priceBasis`,
+`retrievedAt`) y la sesión de mercado usada; así el ledger preserva la
+procedencia y base del precio sin convertirlas en texto libre dentro de
+`source`.
 
 ### BuyPreview
 
-Entidad temporal con intención, precio, cantidad, importe efectivo, remanente del monto solicitado, fees, débito total, metadata de mercado, creación, vencimiento y estado `ACTIVE | CONSUMED | EXPIRED`. Expira exactamente cinco minutos después de crearse según reloj inyectado.
+Entidad temporal con intención, precio, cantidad, importe efectivo, remanente del monto solicitado, fees, débito total, metadata de mercado, creación, vencimiento y estado `ACTIVE | CONSUMED | EXPIRED`. Expira exactamente cinco minutos después de crearse según reloj inyectado. Se persiste por portafolio con precio y metadata inmutables; la confirmación bloquea el portafolio, verifica vigencia y fondos, consume la preview y agrega el `BUY` en una sola transacción. Semántica de idempotencia: la misma clave sobre esa preview devuelve su resultado original; la misma clave sobre otra preview es `IDEMPOTENCY_CONFLICT`; una preview ya consumida con otra clave es `PREVIEW_ALREADY_USED`.
 
 ## Proyecciones
 
@@ -96,7 +102,7 @@ Entrada: monto solicitado y precio. Calcula cantidad hacia abajo a 8 decimales, 
 
 ### PortfolioProjector
 
-Reproduce el ledger en orden `(executedAt, createdAt, id)`, valida la secuencia y deriva efectivo/posiciones. Una secuencia corrupta retorna un error explícito, no una proyección parcial silenciosa.
+Reproduce el ledger en orden autoritativo de append (`ledger_sequence`), con `executedAt`/`createdAt`/`id` como desempates secundarios; valida la secuencia y deriva efectivo y posiciones. Una secuencia corrupta retorna un error explícito, no una proyección parcial silenciosa.
 
 ### HistoricalInvestmentCalculator
 

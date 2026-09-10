@@ -2,7 +2,7 @@
 
 ## Alcance materializado
 
-- Value objects `Money` (escala 2, moneda explícita `COP`, magnitud `numeric(24,2)`) y `Quantity` (escala 8, magnitud `numeric(24,8)`), con redondeos explícitos `roundMoney` (HALF_UP) y `roundQuantity` (ROUND_DOWN) y rechazo de escala excesiva sin redondeo silencioso (FIN-001/FIN-002).
+- Value objects `Money` (escala 2, moneda explícita `COP`, magnitud `numeric(24,2)`) y `Quantity` (escala 8), con redondeos explícitos `roundMoney` (HALF_UP) y `roundQuantity` (ROUND_DOWN) y rechazo de escala excesiva sin redondeo silencioso (FIN-001/FIN-002). La materialización original `numeric(24,8)` de cantidad/precio se corrige a `numeric(28,8)` en Slice 3, conforme ADR-0004.
 - Ledger append-only en `transactions` con índice único parcial `transactions_initial_deposit_unique` que protege el depósito inicial, tabla `portfolios` con un portafolio por owner y tabla `users` con la identidad local fija `DEMO_USER_ID` (ADR-0003).
 - `POST /api/v1/portfolios/initialize` idempotente y `GET /api/v1/portfolio` que deriva el snapshot del ledger; errores de dominio traducidos a Problem RFC 7807 sin filtrar detalles internos.
 - Dashboard con estados loading, inicialización, saldo exacto (`$ 10.000.000,00`) y error con reintento; aviso de capital ficticio persistente.
@@ -14,7 +14,7 @@
 | PORT-001 | `tests/unit/initialize.test.ts`, `tests/integration/portfolio.test.ts`, `tests/contract/portfolio.test.ts`, `tests/e2e/portfolio.spec.ts` |
 | PORT-002 | `tests/unit/projector.test.ts`, `tests/integration/portfolio.test.ts` (partial: reconstrucción con BUY en Slice 3)                        |
 | FIN-001  | `tests/unit/money.test.ts`, round-trip numeric en `tests/integration/portfolio.test.ts`                                                   |
-| FIN-002  | `tests/unit/money.test.ts` (boundary), esquemas `numeric(24,2)`/`numeric(24,8)` en `tests/integration/portfolio.test.ts`                  |
+| FIN-002  | `tests/unit/money.test.ts` (boundary); evidencia definitiva de `numeric(24,2)`/`numeric(28,8)` llega con Slice 3.                         |
 | UI-001   | `tests/e2e/foundation.spec.ts`, `tests/e2e/portfolio.spec.ts`                                                                             |
 
 ## Gates ejecutados localmente (2026-09-09, rama `slice-1-initialization-balance`)

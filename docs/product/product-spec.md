@@ -45,6 +45,14 @@ Estas métricas son criterios técnicos iniciales, no objetivos comerciales aún
 
 Dinero real, depósitos o retiros bancarios, brokers, ventas, short selling, margen, FX, instrumentos distintos de acciones, dividendos acreditados, ajustes automáticos por eventos corporativos, autenticación, despliegue público, recomendaciones personalizadas, trading intradía, estrategias, indicadores avanzados, rebalanceo, optimización, Monte Carlo y derivados.
 
+### Extensión pedagógica planificada
+
+Después de la simulación histórica, la demo permitirá escenarios de clase
+archivables, reinicio de una práctica y anulación reversible de compras
+individuales. No elimina movimientos ni habilita ventas: conserva el historial
+para explicar el ejercicio y reconstruye las proyecciones excluyendo compras
+anuladas. Ver ADR-0010 y Slice 5.
+
 ## User journeys
 
 ### J1 — Consultar portafolio
@@ -118,7 +126,7 @@ Objetivos no funcionales adicionales: TypeScript estricto, dominio independiente
 - precio no positivo o con escala inválida;
 - compra cuyo importe efectivo redondea a cero;
 - fondos exactamente iguales, insuficientes o consumidos concurrentemente;
-- previsualización inexistente, vencida, ya utilizada o confirmada dos veces;
+- previsualización inexistente, vencida, ya utilizada o confirmada dos veces; misma clave de idempotencia aplicada a otra preview;
 - instrumento inexistente, inactivo, no `Equity` o en moneda diferente;
 - proveedor caído, limitado, con datos duplicados, desordenados o fuera de cobertura;
 - fecha inicial posterior a la final y rango sin sesiones válidas;
