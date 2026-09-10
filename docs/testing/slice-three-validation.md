@@ -30,6 +30,11 @@
 - `build`: aprobado.
 - `test:e2e`: 14 tests aprobados contra servidor real en 3100 con base dedicada de E2E.
 
+## Gates de CI
+
+- Rama: runs `34535583770` (pull_request) y `34535578917` (push) aprobados.
+- `main` tras el merge (PR #3, squash): run `34535829579` aprobado con PostgreSQL 17 real, `npm test`, build y E2E completos.
+
 ## Cambios operativos
 
 - E2E corre contra una base dedicada: `E2E_DATABASE_URL` (config en `.env.example`) es migrada y truncada por el `globalSetup` de Playwright; la base de desarrollo nunca es mutada por pruebas. CI mantiene su base fresca `bolsasim_ci`.
