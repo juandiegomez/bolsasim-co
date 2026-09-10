@@ -37,7 +37,9 @@ test("INST-001/MDATA-001: detail shows latest close, session, basis and history"
 }) => {
   await page.goto("/instruments");
   await page.getByRole("link", { name: /DEMO1/ }).click();
-  await expect(page.getByText("Último cierre disponible")).toBeVisible();
+  await expect(
+    page.getByText("Último cierre disponible", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".balance")).toHaveText("120");
   await expect(
     page.getByText(/base UNADJUSTED_CLOSE · fuente bolsasim-demo/),

@@ -35,6 +35,7 @@ describe("FND-001: real PostgreSQL connection and migrations", () => {
       sql`select tablename from pg_tables where schemaname = 'public' order by tablename`,
     );
     expect(tables.rows.map((row) => row.tablename)).toEqual([
+      "buy_previews",
       "portfolios",
       "transactions",
       "users",

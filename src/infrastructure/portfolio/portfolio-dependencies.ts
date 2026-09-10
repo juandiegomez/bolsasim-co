@@ -8,8 +8,11 @@ import { createLocalUserProvider } from "@/infrastructure/identity/local-user-pr
 import { createLogger } from "@/infrastructure/logging/logger";
 import { createGetPortfolioSnapshot } from "@/application/use-cases/get-portfolio-snapshot";
 import { createInitializePortfolio } from "@/application/use-cases/initialize-portfolio";
+import { createListPortfolioTransactions } from "@/application/use-cases/list-portfolio-transactions";
+import { createGetPortfolioEvolution } from "@/application/use-cases/get-portfolio-evolution";
+import { getMarketDataProvider } from "@/infrastructure/market/provider";
 
-export function createDefaultPortfolioRouteDependencies() {
+export async function createDefaultPortfolioRouteDependencies() {
   const environment = getEnvironment();
   const database = getApplicationDatabase();
   const repository = createDrizzlePortfolioRepository(database.db);
@@ -18,6 +21,7 @@ export function createDefaultPortfolioRouteDependencies() {
     asUserId(environment.DEMO_USER_ID),
   );
   const initialDeposit = Money.create(environment.INITIAL_DEPOSIT_COP, "COP");
+  const provider = await getMarketDataProvider();
   return {
     initialize: createInitializePortfolio({
       repository,
@@ -29,6 +33,14 @@ export function createDefaultPortfolioRouteDependencies() {
       repository,
       currentUser,
       clock,
+      initialDeposit,
+      provider,
+    }),
+    transactions: createListPortfolioTransactions({ repository, currentUser }),
+    evolution: createGetPortfolioEvolution({
+      repository,
+      provider,
+      currentUser,
       initialDeposit,
     }),
     logger: createLogger(environment.LOG_LEVEL),

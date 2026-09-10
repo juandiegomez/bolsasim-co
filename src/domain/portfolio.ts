@@ -1,6 +1,6 @@
 import { FinancialDecimal } from "./decimal";
 import type { Instrument } from "./instrument";
-import type { PriceObservation } from "./market";
+import type { DataMode, PriceObservation } from "./market";
 import { Money } from "./money";
 import type { Quantity } from "./quantity";
 import type { PortfolioId } from "./ids";
@@ -11,8 +11,10 @@ export type PositionValuationStatus =
 
 // Domain § Position: projection derived from ledger transactions, never a
 // mutable entity. Cost is the sum of purchases while there are no sales.
+// dataMode is the provenance declared by the market data of the purchase.
 export interface Position {
   readonly instrument: Instrument;
+  readonly dataMode: DataMode;
   readonly quantity: Quantity;
   readonly cost: Money;
   readonly valuationStatus: PositionValuationStatus;
@@ -48,16 +50,31 @@ export function buildPortfolioSnapshot(params: {
   asOf: Date;
   projection: PortfolioProjection;
   initialDeposit: Money;
+  positions?: readonly Position[];
 }): PortfolioSnapshot {
-  const positions: readonly Position[] = [];
-  const positionsValue = Money.zero(params.projection.cash.currency);
-  const totalValue = params.projection.cash.plus(positionsValue);
-  const pnl = positionsValue;
-  const returnPct = params.initialDeposit.amount.isZero()
+  const positions = params.positions ?? [];
+  const hasUnvaluedPositions =
+    positions.some((position) => position.valuationStatus !== "VALUED") ||
+    (positions.length === 0 &&
+      params.projection.investedCost.amount.greaterThan(0));
+  const positionsValue = hasUnvaluedPositions
     ? null
-    : new FinancialDecimal(
-        pnl.amount.div(params.initialDeposit.amount).times(100),
-      ).toFixed(2);
+    : positions.reduce(
+        (total, position) => total.plus(position.marketValue!),
+        Money.zero(params.projection.cash.currency),
+      );
+  const totalValue = positionsValue
+    ? params.projection.cash.plus(positionsValue)
+    : null;
+  // PORT-004: portfolio P&L compares the complete current value (cash plus
+  // positions) with the initial capital, never with the position value alone.
+  const pnl = totalValue ? totalValue.minus(params.initialDeposit) : null;
+  const returnPct =
+    !pnl || params.initialDeposit.amount.isZero()
+      ? null
+      : new FinancialDecimal(
+          pnl.amount.div(params.initialDeposit.amount).times(100),
+        ).toFixed(2);
   return {
     portfolioId: params.portfolioId,
     asOf: params.asOf,
@@ -67,7 +84,9 @@ export function buildPortfolioSnapshot(params: {
     totalValue,
     pnl,
     returnPct,
-    valuationStatus: params.projection.valuationStatus,
+    valuationStatus: hasUnvaluedPositions
+      ? "INCOMPLETE"
+      : params.projection.valuationStatus,
     positions,
   };
 }

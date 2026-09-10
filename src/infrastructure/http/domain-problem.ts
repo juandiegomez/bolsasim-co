@@ -11,6 +11,46 @@ const STATUS_BY_DOMAIN_CODE: Record<
     title: "Bad Request",
     message: "El monto enviado no es válido.",
   },
+  INVALID_UNIT_PRICE: {
+    status: 400,
+    title: "Bad Request",
+    message: "El precio enviado no es válido.",
+  },
+  PURCHASE_AMOUNT_TOO_SMALL: {
+    status: 422,
+    title: "Unprocessable Entity",
+    message: "El monto no alcanza para una compra liquidable.",
+  },
+  INSTRUMENT_NOT_TRADABLE: {
+    status: 422,
+    title: "Unprocessable Entity",
+    message: "El instrumento no es operable en el MVP.",
+  },
+  INSUFFICIENT_FUNDS: {
+    status: 409,
+    title: "Conflict",
+    message: "El efectivo disponible es insuficiente.",
+  },
+  PREVIEW_NOT_FOUND: {
+    status: 404,
+    title: "Not Found",
+    message: "La previsualización no existe.",
+  },
+  PREVIEW_EXPIRED: {
+    status: 410,
+    title: "Gone",
+    message: "La previsualización venció; crea una nueva.",
+  },
+  PREVIEW_ALREADY_USED: {
+    status: 409,
+    title: "Conflict",
+    message: "La previsualización ya fue confirmada.",
+  },
+  IDEMPOTENCY_CONFLICT: {
+    status: 409,
+    title: "Conflict",
+    message: "La clave de idempotencia pertenece a otra operación.",
+  },
   INVALID_SCALE: {
     status: 400,
     title: "Bad Request",

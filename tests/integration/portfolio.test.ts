@@ -7,9 +7,13 @@ import type { CurrentUserProvider } from "@/application/ports/current-user";
 import { getTestDatabaseUrl } from "@/infrastructure/config/env";
 import { createDatabase } from "@/infrastructure/database/client";
 import { createDrizzlePortfolioRepository } from "@/infrastructure/database/portfolio-repository";
+import { createDrizzleBuyPreviewRepository } from "@/infrastructure/database/buy-preview-repository";
 import { runMigrations } from "@/infrastructure/database/migrate";
 import { asUserId } from "@/domain/ids";
 import { Money } from "@/domain/money";
+import { asInstrumentId, asPreviewId, asTransactionId } from "@/domain/ids";
+import { Quantity } from "@/domain/quantity";
+import type { BuyPreview } from "@/domain/buy-preview";
 
 const ownerId = asUserId("00000000-0000-0000-0000-000000000001");
 const initialDeposit = Money.create("10000000.00", "COP");
@@ -28,12 +32,59 @@ describe("PORT-001/PORT-002: PostgreSQL ledger repository", () => {
   });
   beforeEach(async () => {
     await database.db.execute(
-      sql`truncate table users, portfolios, transactions`,
+      sql`truncate table buy_previews, users, portfolios, transactions`,
     );
   });
 
   function repository() {
     return createDrizzlePortfolioRepository(database.db);
+  }
+
+  function preview(
+    portfolioId: string,
+    options: { id?: string; expiresAt?: Date; amount?: string } = {},
+  ): BuyPreview {
+    const amount = options.amount ?? "2000000.00";
+    const instrumentId = asInstrumentId("a1b2c3d4-0001-4a01-9a01-000000000001");
+    const metadata = {
+      providerId: "test",
+      mode: "demo" as const,
+      retrievedAt: asOf,
+      priceBasis: "UNADJUSTED_CLOSE" as const,
+      coverageFrom: "2026-09-01",
+      coverageTo: "2026-09-09",
+      adjustedPricePolicy: "none",
+      limitations: [],
+    };
+    return {
+      id: asPreviewId(options.id ?? "b1b2c3d4-0001-4a01-9a01-000000000001"),
+      portfolioId: portfolioId as never,
+      instrument: {
+        id: instrumentId,
+        symbol: "TEST",
+        name: "Test",
+        exchange: "X",
+        currency: "COP",
+        type: "EQUITY",
+        status: "ACTIVE",
+      },
+      requestedAmount: Money.create(amount, "COP"),
+      price: {
+        instrumentId,
+        sessionDate: "2026-09-09",
+        close: "2500.00000000",
+        currency: "COP",
+        metadata,
+      },
+      quantity: Quantity.create("800.00000000"),
+      grossAmount: Money.create(amount, "COP"),
+      remainder: Money.zero("COP"),
+      fees: Money.zero("COP"),
+      totalDebit: Money.create(amount, "COP"),
+      availableCash: initialDeposit,
+      createdAt: asOf,
+      expiresAt: options.expiresAt ?? new Date("2026-09-09T13:05:00.000Z"),
+    };
   }
 
   function useCases() {
@@ -132,6 +183,158 @@ describe("PORT-001/PORT-002: PostgreSQL ledger repository", () => {
       ]),
     );
     expect(scales.gross_amount).toBe("24,2");
-    expect(scales.quantity).toBe("24,8");
+    expect(scales.quantity).toBe("28,8");
+  });
+
+  it("PORT-003: confirms once and replays the same idempotency key", async () => {
+    const initialized = await repository().initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(preview(initialized.portfolioId));
+    const input = {
+      previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+      portfolioId: initialized.portfolioId,
+      idempotencyKey: "buy-test-1",
+      now: asOf,
+      transactionId: asTransactionId("c1b2c3d4-0001-4a01-9a01-000000000001"),
+    };
+    const first = await previews.confirm(input);
+    const second = await previews.confirm({
+      ...input,
+      transactionId: asTransactionId("d1b2c3d4-0001-4a01-9a01-000000000001"),
+    });
+    expect(first.replayed).toBe(false);
+    expect(second.replayed).toBe(true);
+    expect(second.transaction.id).toBe(first.transaction.id);
+  });
+
+  it("PORT-003: rejects an expired preview without writing a BUY", async () => {
+    const initialized = await repository().initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(
+      preview(initialized.portfolioId, {
+        expiresAt: new Date("2026-09-09T12:59:59.000Z"),
+      }),
+    );
+    await expect(
+      previews.confirm({
+        previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+        portfolioId: initialized.portfolioId,
+        idempotencyKey: "expired",
+        now: asOf,
+        transactionId: asTransactionId("c1b2c3d4-0001-4a01-9a01-000000000001"),
+      }),
+    ).rejects.toMatchObject({ code: "PREVIEW_EXPIRED" });
+  });
+
+  it("PORT-003: rechecks funds at confirmation time", async () => {
+    const initialized = await repository().initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(preview(initialized.portfolioId));
+    await database.db.execute(
+      sql`insert into transactions (id, portfolio_id, type, gross_amount, fees, currency, executed_at, source, created_at) values ('c1b2c3d4-0001-4a01-9a01-000000000001', ${initialized.portfolioId}::uuid, 'BUY', '9000000.00', '0.00', 'COP', ${asOf}, 'USER_SIMULATION', ${asOf})`,
+    );
+    await expect(
+      previews.confirm({
+        previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+        portfolioId: initialized.portfolioId,
+        idempotencyKey: "insufficient",
+        now: asOf,
+        transactionId: asTransactionId("d1b2c3d4-0001-4a01-9a01-000000000001"),
+      }),
+    ).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
+  });
+
+  it("PORT-003: rejects a different key after confirmation (PREVIEW_ALREADY_USED)", async () => {
+    const initialized = await repository().initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(preview(initialized.portfolioId));
+    const input = {
+      previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+      portfolioId: initialized.portfolioId,
+      now: asOf,
+      transactionId: asTransactionId("c1b2c3d4-0001-4a01-9a01-000000000001"),
+    };
+    await previews.confirm({ ...input, idempotencyKey: "first" });
+    await expect(
+      previews.confirm({ ...input, idempotencyKey: "other" }),
+    ).rejects.toMatchObject({ code: "PREVIEW_ALREADY_USED" });
+  });
+
+  it("PORT-003: rejects a foreign key applied to another preview (IDEMPOTENCY_CONFLICT)", async () => {
+    const initialized = await repository().initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(preview(initialized.portfolioId));
+    await previews.confirm({
+      previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+      portfolioId: initialized.portfolioId,
+      idempotencyKey: "first",
+      now: asOf,
+      transactionId: asTransactionId("c1b2c3d4-0001-4a01-9a01-000000000001"),
+    });
+    await previews.create(
+      preview(initialized.portfolioId, {
+        id: "b1b2c3d4-0002-4a01-9a01-000000000001",
+      }),
+    );
+    await expect(
+      previews.confirm({
+        previewId: asPreviewId("b1b2c3d4-0002-4a01-9a01-000000000001"),
+        portfolioId: initialized.portfolioId,
+        idempotencyKey: "first",
+        now: asOf,
+        transactionId: asTransactionId("d1b2c3d4-0001-4a01-9a01-000000000001"),
+      }),
+    ).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+  });
+
+  it("PORT-003: concurrent confirmations cannot create two BUY movements", async () => {
+    const initialized = await repository().initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(preview(initialized.portfolioId));
+    const input = {
+      previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+      portfolioId: initialized.portfolioId,
+      idempotencyKey: "concurrent",
+      now: asOf,
+    };
+    const [first, second] = await Promise.all([
+      previews.confirm({
+        ...input,
+        transactionId: asTransactionId("c1b2c3d4-0001-4a01-9a01-000000000001"),
+      }),
+      previews.confirm({
+        ...input,
+        transactionId: asTransactionId("d1b2c3d4-0001-4a01-9a01-000000000001"),
+      }),
+    ]);
+    expect([first.replayed, second.replayed].sort()).toEqual([false, true]);
+    const count = await database.db.execute(
+      sql`select count(*)::int as count from transactions where type = 'BUY'`,
+    );
+    expect(count.rows[0]?.count).toBe(1);
   });
 });

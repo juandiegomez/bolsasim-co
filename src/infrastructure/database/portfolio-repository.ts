@@ -13,7 +13,14 @@ import {
   type UserId,
 } from "@/domain/ids";
 import { Money, type Currency } from "@/domain/money";
-import { createInitialDeposit, type Transaction } from "@/domain/transaction";
+import { Quantity } from "@/domain/quantity";
+import { UnitPrice } from "@/domain/unit-price";
+import {
+  createBuy,
+  createInitialDeposit,
+  type Transaction,
+} from "@/domain/transaction";
+import { asInstrumentId } from "@/domain/ids";
 import { PersistenceError } from "./errors";
 import { portfolios, transactions, users } from "./schema";
 
@@ -36,9 +43,11 @@ interface TransactionRow {
   currency: string;
   executedAt: Date;
   marketSessionDate: string | null;
+  marketData: unknown | null;
   source: string;
   idempotencyKey: string | null;
   createdAt: Date;
+  ledgerSequence: number;
 }
 
 type InitialDepositRow = TransactionRow & {
@@ -53,11 +62,36 @@ function isInitialDepositRow(row: TransactionRow): row is InitialDepositRow {
 }
 
 function mapRowToTransaction(row: TransactionRow): Transaction {
-  if (!isInitialDepositRow(row)) {
-    throw corrupt(
-      `tipo de movimiento no reconocido en este slice (${row.type})`,
-    );
+  if (row.type === "BUY") {
+    if (
+      !row.instrumentId ||
+      !row.quantity ||
+      !row.unitPrice ||
+      !row.marketSessionDate ||
+      !row.marketData ||
+      !row.idempotencyKey ||
+      row.source !== "USER_SIMULATION"
+    ) {
+      throw corrupt("la compra no contiene todos los campos requeridos");
+    }
+    const currency = validateCurrency(row.currency);
+    return createBuy({
+      transactionId: asTransactionId(row.id),
+      portfolioId: asPortfolioId(row.portfolioId),
+      instrumentId: asInstrumentId(row.instrumentId),
+      quantity: Quantity.create(row.quantity),
+      unitPrice: UnitPrice.create(row.unitPrice, currency),
+      grossAmount: Money.create(row.grossAmount, currency),
+      fees: Money.create(row.fees, currency),
+      executedAt: row.executedAt,
+      marketSessionDate: row.marketSessionDate,
+      marketData: row.marketData as never,
+      idempotencyKey: row.idempotencyKey,
+      ledgerSequence: row.ledgerSequence,
+    });
   }
+  if (!isInitialDepositRow(row))
+    throw corrupt(`tipo de movimiento no reconocido (${row.type})`);
   if (
     row.instrumentId !== null ||
     row.quantity !== null ||
@@ -76,6 +110,7 @@ function mapRowToTransaction(row: TransactionRow): Transaction {
     deposit: Money.create(row.grossAmount, currency),
     executedAt: row.executedAt,
     createdAt: row.createdAt,
+    ledgerSequence: row.ledgerSequence,
   });
 }
 
@@ -94,11 +129,7 @@ function ledgerQuery(
     .select()
     .from(transactions)
     .where(eq(transactions.portfolioId, portfolioId))
-    .orderBy(
-      asc(transactions.executedAt),
-      asc(transactions.createdAt),
-      asc(transactions.id),
-    );
+    .orderBy(asc(transactions.ledgerSequence));
 }
 
 async function mapLedger(

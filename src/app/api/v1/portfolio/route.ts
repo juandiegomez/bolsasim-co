@@ -4,8 +4,8 @@ import { createDefaultPortfolioRouteDependencies } from "@/infrastructure/portfo
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function handlers() {
-  const dependencies = createDefaultPortfolioRouteDependencies();
+async function handlers() {
+  const dependencies = await createDefaultPortfolioRouteDependencies();
   return createPortfolioHandlers(
     {
       initialize: dependencies.initialize,
@@ -15,12 +15,12 @@ function handlers() {
   );
 }
 
-export function GET(request: Request) {
-  return handlers().snapshot(request);
+export async function GET(request: Request) {
+  return (await handlers()).snapshot(request);
 }
 
-const notAllowed = (request: Request) =>
-  handlers().methodNotAllowed("GET")(request);
+const notAllowed = async (request: Request) =>
+  (await handlers()).methodNotAllowed("GET")(request);
 
 export {
   notAllowed as POST,
