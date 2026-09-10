@@ -1,7 +1,9 @@
 import { sql } from "drizzle-orm";
 import {
+  bigserial,
   date,
   index,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -43,16 +45,18 @@ export const transactions = pgTable(
       .references(() => portfolios.id),
     type: text("type").notNull(),
     instrumentId: uuid("instrument_id"),
-    quantity: numeric("quantity", { precision: 24, scale: 8 }),
-    unitPrice: numeric("unit_price", { precision: 24, scale: 8 }),
+    quantity: numeric("quantity", { precision: 28, scale: 8 }),
+    unitPrice: numeric("unit_price", { precision: 28, scale: 8 }),
     grossAmount: numeric("gross_amount", { precision: 24, scale: 2 }).notNull(),
     fees: numeric("fees", { precision: 24, scale: 2 }).notNull(),
     currency: text("currency").notNull(),
     executedAt: timestamp("executed_at", { withTimezone: true }).notNull(),
     marketSessionDate: date("market_session_date", { mode: "string" }),
+    marketData: jsonb("market_data"),
     source: text("source").notNull(),
     idempotencyKey: text("idempotency_key"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    ledgerSequence: bigserial("ledger_sequence", { mode: "number" }).notNull(),
   },
   (table) => [
     uniqueIndex("transactions_initial_deposit_unique")
@@ -67,5 +71,47 @@ export const transactions = pgTable(
       table.createdAt,
       table.id,
     ),
+  ],
+);
+
+// PORT-003: server-calculated previews are durable, owner-scoped and consumed
+// atomically with the ledger entry. No value supplied by the client is stored.
+export const buyPreviews = pgTable(
+  "buy_previews",
+  {
+    id: uuid("id").primaryKey(),
+    portfolioId: uuid("portfolio_id")
+      .notNull()
+      .references(() => portfolios.id),
+    instrumentId: uuid("instrument_id").notNull(),
+    requestedAmount: numeric("requested_amount", {
+      precision: 24,
+      scale: 2,
+    }).notNull(),
+    currency: text("currency").notNull(),
+    unitPrice: numeric("unit_price", { precision: 28, scale: 8 }).notNull(),
+    quantity: numeric("quantity", { precision: 28, scale: 8 }).notNull(),
+    grossAmount: numeric("gross_amount", { precision: 24, scale: 2 }).notNull(),
+    fees: numeric("fees", { precision: 24, scale: 2 }).notNull(),
+    totalDebit: numeric("total_debit", { precision: 24, scale: 2 }).notNull(),
+    availableCash: numeric("available_cash", {
+      precision: 24,
+      scale: 2,
+    }).notNull(),
+    marketSessionDate: date("market_session_date", {
+      mode: "string",
+    }).notNull(),
+    marketData: jsonb("market_data").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    transactionId: uuid("transaction_id"),
+    idempotencyKey: text("idempotency_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("buy_previews_idempotency_key_unique")
+      .on(table.idempotencyKey)
+      .where(sql`idempotency_key is not null`),
+    index("buy_previews_portfolio_idx").on(table.portfolioId, table.expiresAt),
   ],
 );

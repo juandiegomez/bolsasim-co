@@ -5,6 +5,10 @@ import type { PortfolioProjection } from "./portfolio";
 import type { Transaction } from "./transaction";
 
 function compareTransactions(a: Transaction, b: Transaction): number {
+  // ADR-0003: the append order of the ledger is authoritative; executedAt
+  // and createdAt only order within the same append sequence value.
+  const bySequence = a.ledgerSequence - b.ledgerSequence;
+  if (bySequence !== 0) return bySequence;
   const byExecutedAt = a.executedAt.getTime() - b.executedAt.getTime();
   if (byExecutedAt !== 0) return byExecutedAt;
   const byCreatedAt = a.createdAt.getTime() - b.createdAt.getTime();
@@ -33,28 +37,45 @@ export function projectLedger(
   }
   let cash = new FinancialDecimal("0.00");
   let deposits = 0;
+  let investedCost = new FinancialDecimal("0.00");
   for (const transaction of ordered) {
-    if (transaction.type !== "INITIAL_DEPOSIT") {
-      throw corrupt(
-        `tipo de movimiento no soportado en este slice: ${transaction.type}`,
-      );
-    }
-    deposits += 1;
-    if (deposits > 1) {
-      throw corrupt("el portafolio tiene más de un depósito inicial");
-    }
     if (transaction.currency !== expectedInitialDeposit.currency) {
-      throw corrupt("moneda del depósito distinta a la base del portafolio");
+      throw corrupt("moneda de movimiento distinta a la base del portafolio");
     }
-    if (!transaction.grossAmount.amount.eq(expectedInitialDeposit.amount)) {
-      throw corrupt(
-        "el monto del depósito inicial no coincide con el esperado",
+    if (transaction.type === "INITIAL_DEPOSIT") {
+      deposits += 1;
+      if (deposits > 1) {
+        throw corrupt("el portafolio tiene más de un depósito inicial");
+      }
+      if (!transaction.grossAmount.amount.eq(expectedInitialDeposit.amount)) {
+        throw corrupt(
+          "el monto del depósito inicial no coincide con el esperado",
+        );
+      }
+      if (!transaction.fees.amount.isZero()) {
+        throw corrupt("el depósito inicial no debe tener comisiones");
+      }
+      cash = cash.plus(transaction.grossAmount.amount);
+    } else if (transaction.type === "BUY") {
+      if (
+        !transaction.instrumentId ||
+        !transaction.quantity ||
+        !transaction.unitPrice ||
+        !transaction.marketSessionDate ||
+        !transaction.marketData ||
+        transaction.source !== "USER_SIMULATION" ||
+        !transaction.idempotencyKey
+      ) {
+        throw corrupt("la compra no contiene todos los datos autoritativos");
+      }
+      const debit = transaction.grossAmount.amount.plus(
+        transaction.fees.amount,
       );
+      cash = cash.minus(debit);
+      investedCost = investedCost.plus(debit);
+    } else {
+      throw corrupt(`tipo de movimiento no soportado: ${transaction.type}`);
     }
-    if (!transaction.fees.amount.isZero()) {
-      throw corrupt("el depósito inicial no debe tener comisiones");
-    }
-    cash = cash.plus(transaction.grossAmount.amount);
     if (cash.isNegative()) {
       throw corrupt("la secuencia deja efectivo negativo");
     }
@@ -64,7 +85,7 @@ export function projectLedger(
   }
   return {
     cash: Money.create(cash, expectedInitialDeposit.currency),
-    investedCost: Money.zero(expectedInitialDeposit.currency),
+    investedCost: Money.create(investedCost, expectedInitialDeposit.currency),
     valuationStatus: "COMPLETE",
   };
 }

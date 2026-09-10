@@ -15,6 +15,13 @@
       "when": 1788986205484,
       "tag": "0001_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789070400000,
+      "tag": "0002_slice_three_buy",
+      "breakpoints": true
     }
   ]
 }

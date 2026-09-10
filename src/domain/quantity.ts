@@ -3,9 +3,9 @@ import { FinancialDecimal } from "./decimal";
 import { DomainError } from "./errors";
 
 const QUANTITY_SCALE = 8;
-const QUANTITY_LIMIT = new FinancialDecimal("1e16");
+const QUANTITY_LIMIT = new FinancialDecimal("1e20");
 
-// FIN-002: non-negative decimal quantity with scale 8, magnitude numeric(24,8).
+// FIN-002: non-negative decimal quantity with scale 8, magnitude numeric(28,8).
 export class Quantity {
   private constructor(readonly value: Decimal) {}
 
@@ -33,7 +33,7 @@ export class Quantity {
     if (decimal.abs().greaterThanOrEqualTo(QUANTITY_LIMIT)) {
       throw new DomainError(
         "INVALID_SCALE",
-        "La cantidad excede la magnitud soportada por numeric(24,8).",
+        "La cantidad excede la magnitud soportada por numeric(28,8).",
       );
     }
     return new Quantity(decimal);

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   Line,
@@ -45,6 +46,16 @@ interface InstrumentDTO {
   type: string;
   status: string;
   dataMode: "real" | "demo";
+}
+
+interface BuyPreviewDTO {
+  id: string;
+  quantity: string;
+  grossAmount: { amount: string; currency: string };
+  remainder: { amount: string; currency: string };
+  totalDebit: { amount: string; currency: string };
+  expiresAt: string;
+  price: PriceObservationDTO;
 }
 
 type DetailState =
@@ -108,6 +119,11 @@ async function loadDetail(instrumentId: string): Promise<DetailState> {
 
 export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
   const [state, setState] = useState<DetailState>({ status: "loading" });
+  const [amount, setAmount] = useState("2000000.00");
+  const [preview, setPreview] = useState<BuyPreviewDTO | null>(null);
+  const [buyError, setBuyError] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
+  const router = useRouter();
 
   const refresh = useCallback(() => {
     setState({ status: "loading" });
@@ -144,6 +160,66 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
     close: Number(entry.close),
   }));
   const formattedDate = new Date(latest.metadata.retrievedAt).toISOString();
+  const canBuy =
+    instrument.type === "EQUITY" &&
+    instrument.status === "ACTIVE" &&
+    instrument.currency === "COP";
+
+  async function requestPreview() {
+    setBuying(true);
+    setBuyError(null);
+    try {
+      const response = await fetch("/api/v1/buy-previews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instrumentId,
+          amount: { amount, currency: "COP" },
+        }),
+      });
+      if (!response.ok)
+        throw new Error(
+          (await response.json().catch(() => null))?.message ??
+            "No fue posible preparar la compra.",
+        );
+      setPreview(await response.json());
+    } catch (error) {
+      setBuyError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible preparar la compra.",
+      );
+    } finally {
+      setBuying(false);
+    }
+  }
+
+  async function confirmPurchase() {
+    if (!preview) return;
+    setBuying(true);
+    setBuyError(null);
+    try {
+      const response = await fetch(
+        `/api/v1/buy-previews/${preview.id}/confirm`,
+        { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() } },
+      );
+      if (!response.ok)
+        throw new Error(
+          (await response.json().catch(() => null))?.message ??
+            "No fue posible confirmar la compra.",
+        );
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      setBuyError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible confirmar la compra.",
+      );
+    } finally {
+      setBuying(false);
+    }
+  }
 
   return (
     <div aria-live="polite">
@@ -166,6 +242,96 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
           {latest.metadata.mode}) · obtenido {formattedDate}
         </dd>
       </dl>
+      {canBuy && (
+        <section className="purchase-panel" aria-labelledby="purchase-title">
+          <h3 id="purchase-title">Simular compra hoy</h3>
+          <p>
+            Usaremos el último cierre disponible, no un precio en tiempo real.
+            El capital es ficticio.
+          </p>
+          {!preview ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void requestPreview();
+              }}
+            >
+              <label htmlFor="purchase-amount">Monto a invertir (COP)</label>
+              <input
+                id="purchase-amount"
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                required
+              />
+              <button className="action" type="submit" disabled={buying}>
+                {buying ? "Calculando…" : "Ver simulación de compra"}
+              </button>
+            </form>
+          ) : (
+            <div className="purchase-preview">
+              <p>
+                <strong>
+                  Preview válida hasta{" "}
+                  {new Date(preview.expiresAt).toLocaleTimeString("es-CO")}
+                </strong>
+              </p>
+              <dl>
+                <div>
+                  <dt>Precio usado</dt>
+                  <dd>
+                    {preview.price.close} COP ({preview.price.sessionDate})
+                  </dd>
+                </div>
+                <div>
+                  <dt>Cantidad estimada</dt>
+                  <dd>{preview.quantity}</dd>
+                </div>
+                <div>
+                  <dt>Débito</dt>
+                  <dd>$ {preview.totalDebit.amount} COP</dd>
+                </div>
+                <div>
+                  <dt>Remanente</dt>
+                  <dd>$ {preview.remainder.amount} COP</dd>
+                </div>
+              </dl>
+              <button
+                className="action"
+                type="button"
+                onClick={() => void confirmPurchase()}
+                disabled={buying}
+              >
+                {buying ? "Confirmando…" : "Confirmar compra simulada"}
+              </button>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => setPreview(null)}
+                disabled={buying}
+              >
+                Cambiar monto
+              </button>
+            </div>
+          )}
+          {buyError && <p role="alert">{buyError}</p>}
+        </section>
+      )}
+      {!canBuy && (
+        <section
+          className="purchase-panel"
+          aria-labelledby="not-tradable-title"
+        >
+          <h3 id="not-tradable-title">No disponible para compra simulada</h3>
+          <p>
+            En este MVP solo se pueden comprar acciones activas denominadas en
+            COP. Este instrumento opera en {instrument.currency}.
+          </p>
+          <Link className="secondary-action" href="/instruments">
+            Ver instrumentos operables en COP
+          </Link>
+        </section>
+      )}
       {series && chartData.length > 0 && (
         <section aria-label="Histórico de cierres">
           <h3>
@@ -198,23 +364,27 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <table>
-            <caption>Cierres diarios de {instrument.symbol}</caption>
-            <thead>
-              <tr>
-                <th scope="col">Fecha de sesión</th>
-                <th scope="col">Cierre ({series.observations[0]?.currency})</th>
-              </tr>
-            </thead>
-            <tbody>
-              {series.observations.map((entry) => (
-                <tr key={entry.sessionDate}>
-                  <td>{entry.sessionDate}</td>
-                  <td>{entry.close}</td>
+          <div className="table-scroll">
+            <table>
+              <caption>Cierres diarios de {instrument.symbol}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Fecha de sesión</th>
+                  <th scope="col">
+                    Cierre ({series.observations[0]?.currency})
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {series.observations.map((entry) => (
+                  <tr key={entry.sessionDate}>
+                    <td>{entry.sessionDate}</td>
+                    <td>{entry.close}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
       {seriesUnavailable && (
