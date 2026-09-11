@@ -42,7 +42,9 @@ test("INST-001/MDATA-001: detail shows latest close, session, basis and history"
   ).toBeVisible();
   await expect(page.locator(".balance")).toHaveText("120");
   await expect(
-    page.getByText(/base UNADJUSTED_CLOSE · fuente bolsasim-demo/),
+    page.getByText(
+      /Cierre del 28 de agosto de 2026 · COP · dato demo educativo/,
+    ),
   ).toBeVisible();
   const chart = page.locator('[role="img"][aria-label*="Gráfica de cierres"]');
   await expect(chart).toBeVisible();

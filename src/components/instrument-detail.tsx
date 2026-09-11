@@ -159,7 +159,20 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
     date: entry.sessionDate,
     close: Number(entry.close),
   }));
-  const formattedDate = new Date(latest.metadata.retrievedAt).toISOString();
+  const sessionDateLabel = new Date(
+    `${latest.sessionDate}T12:00:00.000Z`,
+  ).toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const retrievedDateLabel = new Date(
+    latest.metadata.retrievedAt,
+  ).toLocaleString("es-CO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const canBuy =
     instrument.type === "EQUITY" &&
     instrument.status === "ACTIVE" &&
@@ -237,10 +250,11 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
       <dl>
         <dt>Último cierre disponible</dt>
         <dd className="balance">{latest.close}</dd>
-        <dd className="muted">
-          {latest.sessionDate} · {latest.currency} · base{" "}
-          {latest.metadata.priceBasis} · fuente {latest.metadata.providerId} (
-          {latest.metadata.mode}) · obtenido {formattedDate}
+        <dd className="price-context">
+          Cierre del {sessionDateLabel} · {latest.currency} ·{" "}
+          {latest.metadata.mode === "demo"
+            ? "dato demo educativo"
+            : "dato de mercado"}
         </dd>
       </dl>
       <details className="learning-note">
@@ -277,7 +291,18 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
           </div>
           <div>
             <dt>Obtenido</dt>
-            <dd>Momento en que la aplicación consultó ese dato.</dd>
+            <dd>
+              {retrievedDateLabel}: momento en que la aplicación consultó ese
+              dato.
+            </dd>
+          </div>
+          <div>
+            <dt>Fuente técnica</dt>
+            <dd>{latest.metadata.providerId}</dd>
+          </div>
+          <div>
+            <dt>Base técnica</dt>
+            <dd>{latest.metadata.priceBasis}</dd>
           </div>
         </dl>
       </details>

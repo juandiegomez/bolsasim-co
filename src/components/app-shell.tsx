@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/instruments">Explorar</Link>
           <Link href="/simulator">Simulación histórica</Link>
         </nav>
-        <span>Simulador educativo</span>
+        <span className="header-label">Simulador educativo</span>
       </header>
       <main id="main" tabIndex={-1}>
         {children}
