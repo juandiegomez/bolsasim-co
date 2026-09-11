@@ -22,6 +22,13 @@
       "when": 1789070400000,
       "tag": "0002_slice_three_buy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789097196532,
+      "tag": "0003_youthful_martin_li",
+      "breakpoints": true
     }
   ]
 }

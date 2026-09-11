@@ -22,7 +22,11 @@ export type DomainErrorCode =
   | "INVALID_PROVIDER_DATA"
   | "PROVIDER_UNAVAILABLE"
   | "RATE_LIMITED"
-  | "CORRUPT_LEDGER";
+  | "CORRUPT_LEDGER"
+  | "BUY_NOT_FOUND"
+  | "INVALID_VOID_TARGET"
+  | "BUY_ALREADY_VOIDED"
+  | "SCENARIO_ARCHIVED";
 
 export class DomainError extends Error {
   constructor(

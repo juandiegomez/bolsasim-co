@@ -30,11 +30,20 @@ interface PositionDTO {
 
 interface TransactionDTO {
   id: string;
-  type: "INITIAL_DEPOSIT" | "BUY";
+  type: "INITIAL_DEPOSIT" | "BUY" | "VOID_BUY";
   grossAmount: MoneyDTO;
   fees: MoneyDTO;
   executedAt: string;
   instrumentId: string | null;
+  reversalOfTransactionId: string | null;
+}
+interface ScenarioDTO {
+  id: string;
+  portfolioId: string;
+  label: string;
+  status: "ACTIVE" | "ARCHIVED";
+  createdAt: string;
+  archivedAt: string | null;
 }
 interface EvolutionDTO {
   date: string;
@@ -64,6 +73,7 @@ type DashboardState =
       snapshot: PortfolioSnapshotDTO;
       transactions: TransactionDTO[];
       evolution: EvolutionDTO[];
+      scenarios: ScenarioDTO[];
       movementsUnavailable: boolean;
       evolutionUnavailable: boolean;
     }
@@ -110,6 +120,12 @@ async function queryPortfolioState(): Promise<DashboardState> {
       const transactions = movements.ok
         ? ((await movements.json()) as { items: TransactionDTO[] }).items
         : [];
+      const scenarioResponse = await fetch("/api/v1/scenarios", {
+        headers: { Accept: "application/json" },
+      });
+      const scenarios = scenarioResponse.ok
+        ? ((await scenarioResponse.json()) as { items: ScenarioDTO[] }).items
+        : [];
       const end = new Date(snapshot.asOf);
       const start = new Date(end);
       start.setUTCDate(start.getUTCDate() - 30);
@@ -124,6 +140,7 @@ async function queryPortfolioState(): Promise<DashboardState> {
         status: "ready",
         snapshot,
         transactions,
+        scenarios,
         evolution,
         movementsUnavailable: !movements.ok,
         evolutionUnavailable: !evolutionResponse.ok,
@@ -148,15 +165,7 @@ async function requestInitializationState(): Promise<DashboardState> {
       headers: { Accept: "application/json" },
     });
     if (response.ok) {
-      const snapshot = (await response.json()) as PortfolioSnapshotDTO;
-      return {
-        status: "ready",
-        snapshot,
-        transactions: [],
-        evolution: [],
-        movementsUnavailable: false,
-        evolutionUnavailable: false,
-      };
+      return queryPortfolioState();
     }
   } catch {
     return { status: "error", message: initializeError };
@@ -174,6 +183,51 @@ export function PortfolioDashboard() {
   const start = useCallback(() => {
     setState({ status: "loading" });
     void requestInitializationState().then((next) => setState(next));
+  }, []);
+
+  const resetScenario = useCallback(async () => {
+    if (
+      !window.confirm(
+        "La práctica actual se conservará como ejemplo y se creará una nueva con capital ficticio. ¿Continuar?",
+      )
+    )
+      return;
+    setState({ status: "loading" });
+    try {
+      const response = await fetch("/api/v1/scenarios/reset", {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error();
+      setState(await queryPortfolioState());
+    } catch {
+      setState({
+        status: "error",
+        message: "No fue posible crear una nueva práctica. Inténtalo de nuevo.",
+      });
+    }
+  }, []);
+
+  const voidBuy = useCallback(async (transactionId: string) => {
+    if (
+      !window.confirm(
+        "La compra se conservará en el historial, pero dejará de afectar el saldo y las posiciones. ¿Continuar?",
+      )
+    )
+      return;
+    setState({ status: "loading" });
+    try {
+      const response = await fetch(
+        `/api/v1/portfolio/transactions/${transactionId}/void`,
+        { method: "POST" },
+      );
+      if (!response.ok) throw new Error();
+      setState(await queryPortfolioState());
+    } catch {
+      setState({
+        status: "error",
+        message: "No fue posible deshacer la compra. Inténtalo de nuevo.",
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -216,6 +270,36 @@ export function PortfolioDashboard() {
             {metric("Valor total", state.snapshot.totalValue)}
             {metric("P&L", state.snapshot.pnl)}
           </dl>
+          <section className="scenario-panel" aria-labelledby="scenario-title">
+            <div className="scenario-heading">
+              <div>
+                <h2 id="scenario-title">Prácticas</h2>
+                <p>
+                  La práctica activa se puede reiniciar; las anteriores quedan
+                  como ejemplos de solo lectura.
+                </p>
+              </div>
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={resetScenario}
+              >
+                Conservar y empezar de nuevo
+              </button>
+            </div>
+            {state.scenarios.length > 0 && (
+              <ul className="scenario-list">
+                {state.scenarios.map((scenario) => (
+                  <li key={scenario.id}>
+                    <span>{scenario.label}</span>
+                    <span className="badge">
+                      {scenario.status === "ACTIVE" ? "Activa" : "Archivada"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
           {state.snapshot.valuationStatus === "INCOMPLETE" && (
             <p role="status">
               La valoración está incompleta: falta un precio válido para al
@@ -312,9 +396,22 @@ export function PortfolioDashboard() {
                         <th scope="row">
                           {transaction.type === "BUY"
                             ? "Compra simulada"
-                            : "Capital inicial"}
+                            : transaction.type === "VOID_BUY"
+                              ? "Compra deshecha"
+                              : "Capital inicial"}
                         </th>
-                        <td>{formatCop(transaction.grossAmount.amount)}</td>
+                        <td>
+                          {formatCop(transaction.grossAmount.amount)}
+                          {transaction.type === "BUY" && (
+                            <button
+                              className="text-action"
+                              type="button"
+                              onClick={() => voidBuy(transaction.id)}
+                            >
+                              Deshacer compra
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

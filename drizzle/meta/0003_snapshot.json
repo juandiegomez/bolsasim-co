@@ -1,0 +1,520 @@
+{
+  "id": "17eceef4-71b2-4e18-9c23-e6f1c89d2d89",
+  "prevId": "53734b47-9cdf-4cc1-ad9e-85c1d3c9d1a9",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.buy_previews": {
+      "name": "buy_previews",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "portfolio_id": {
+          "name": "portfolio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_amount": {
+          "name": "requested_amount",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_price": {
+          "name": "unit_price",
+          "type": "numeric(28, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(28, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gross_amount": {
+          "name": "gross_amount",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fees": {
+          "name": "fees",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_debit": {
+          "name": "total_debit",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "available_cash": {
+          "name": "available_cash",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market_session_date": {
+          "name": "market_session_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market_data": {
+          "name": "market_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consumed_at": {
+          "name": "consumed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transaction_id": {
+          "name": "transaction_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "buy_previews_idempotency_key_unique": {
+          "name": "buy_previews_idempotency_key_unique",
+          "columns": [
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "idempotency_key is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "buy_previews_portfolio_idx": {
+          "name": "buy_previews_portfolio_idx",
+          "columns": [
+            {
+              "expression": "portfolio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "buy_previews_portfolio_id_portfolios_id_fk": {
+          "name": "buy_previews_portfolio_id_portfolios_id_fk",
+          "tableFrom": "buy_previews",
+          "tableTo": "portfolios",
+          "columnsFrom": [
+            "portfolio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.portfolios": {
+      "name": "portfolios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_currency": {
+          "name": "base_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Práctica'"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "portfolios_owner_active_unique": {
+          "name": "portfolios_owner_active_unique",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status = 'ACTIVE'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "portfolios_owner_id_users_id_fk": {
+          "name": "portfolios_owner_id_users_id_fk",
+          "tableFrom": "portfolios",
+          "tableTo": "users",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.transactions": {
+      "name": "transactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "portfolio_id": {
+          "name": "portfolio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(28, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_price": {
+          "name": "unit_price",
+          "type": "numeric(28, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gross_amount": {
+          "name": "gross_amount",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fees": {
+          "name": "fees",
+          "type": "numeric(24, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "executed_at": {
+          "name": "executed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market_session_date": {
+          "name": "market_session_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "market_data": {
+          "name": "market_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reversal_of_transaction_id": {
+          "name": "reversal_of_transaction_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ledger_sequence": {
+          "name": "ledger_sequence",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "transactions_initial_deposit_unique": {
+          "name": "transactions_initial_deposit_unique",
+          "columns": [
+            {
+              "expression": "portfolio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "type = 'INITIAL_DEPOSIT'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_idempotency_key_unique": {
+          "name": "transactions_idempotency_key_unique",
+          "columns": [
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "idempotency_key is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_ledger_order_idx": {
+          "name": "transactions_ledger_order_idx",
+          "columns": [
+            {
+              "expression": "portfolio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "executed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_void_target_unique": {
+          "name": "transactions_void_target_unique",
+          "columns": [
+            {
+              "expression": "reversal_of_transaction_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "type = 'VOID_BUY'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "transactions_portfolio_id_portfolios_id_fk": {
+          "name": "transactions_portfolio_id_portfolios_id_fk",
+          "tableFrom": "transactions",
+          "tableTo": "portfolios",
+          "columnsFrom": [
+            "portfolio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

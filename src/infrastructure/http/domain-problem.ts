@@ -126,6 +126,26 @@ const STATUS_BY_DOMAIN_CODE: Record<
     title: "Internal Server Error",
     message: "El ledger del portafolio es inconsistente y requiere revisión.",
   },
+  BUY_NOT_FOUND: {
+    status: 404,
+    title: "Not Found",
+    message: "La compra no existe en el escenario activo.",
+  },
+  INVALID_VOID_TARGET: {
+    status: 400,
+    title: "Bad Request",
+    message: "Solo se puede revertir una compra del escenario activo.",
+  },
+  BUY_ALREADY_VOIDED: {
+    status: 409,
+    title: "Conflict",
+    message: "La compra ya fue revertida.",
+  },
+  SCENARIO_ARCHIVED: {
+    status: 409,
+    title: "Conflict",
+    message: "El escenario está archivado y solo puede consultarse.",
+  },
 };
 
 // Architecture § Trust: adapters translate modeled errors without leaking

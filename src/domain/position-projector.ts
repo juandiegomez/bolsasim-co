@@ -8,6 +8,7 @@ import { Money, roundMoney } from "./money";
 import type { Position } from "./portfolio";
 import { Quantity } from "./quantity";
 import type { Transaction } from "./transaction";
+import { getVoidedBuyIds } from "./portfolio-projector";
 
 export interface PositionMarketData {
   readonly instrument: Instrument;
@@ -23,12 +24,13 @@ export function projectPositions(
   ledger: readonly Transaction[],
   market: ReadonlyMap<string, PositionMarketData>,
 ): readonly Position[] {
+  const voided = getVoidedBuyIds(ledger);
   const grouped = new Map<
     string,
     { quantity: Decimal; cost: Money; mode: DataMode }
   >();
   for (const entry of ledger) {
-    if (entry.type !== "BUY") continue;
+    if (entry.type !== "BUY" || voided.has(entry.id)) continue;
     if (!entry.instrumentId || !entry.quantity) continue;
     const current = grouped.get(entry.instrumentId);
     const cost = entry.grossAmount.plus(entry.fees);

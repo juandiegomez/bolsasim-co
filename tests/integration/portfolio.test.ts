@@ -337,4 +337,53 @@ describe("PORT-001/PORT-002: PostgreSQL ledger repository", () => {
     );
     expect(count.rows[0]?.count).toBe(1);
   });
+
+  it("PED-001: reset archives the current scenario and creates a fresh one", async () => {
+    const repo = repository();
+    const first = await repo.initializeForOwner(ownerId, initialDeposit, asOf);
+    const result = await repo.resetForOwner(
+      ownerId,
+      initialDeposit,
+      new Date("2026-09-10T13:00:00.000Z"),
+    );
+    expect(result.archived?.portfolioId).toBe(first.portfolioId);
+    expect(result.archived?.status).toBe("ARCHIVED");
+    expect(result.active.portfolioId).not.toBe(first.portfolioId);
+    expect(result.active.ledger).toHaveLength(1);
+    await expect(repo.findByOwner(ownerId)).resolves.toMatchObject({
+      portfolioId: result.active.portfolioId,
+      status: "ACTIVE",
+    });
+    await expect(repo.listScenarios(ownerId)).resolves.toHaveLength(2);
+  });
+
+  it("PED-002: voiding a BUY appends a reversal and rebuilds cash", async () => {
+    const repo = repository();
+    const initialized = await repo.initializeForOwner(
+      ownerId,
+      initialDeposit,
+      asOf,
+    );
+    const previews = createDrizzleBuyPreviewRepository(database.db);
+    await previews.create(preview(initialized.portfolioId));
+    const confirmed = await previews.confirm({
+      previewId: asPreviewId("b1b2c3d4-0001-4a01-9a01-000000000001"),
+      portfolioId: initialized.portfolioId,
+      idempotencyKey: "void-buy",
+      now: asOf,
+      transactionId: asTransactionId("c1b2c3d4-0001-4a01-9a01-000000000001"),
+    });
+    const after = await repo.voidBuy(
+      ownerId,
+      confirmed.transaction.id,
+      new Date("2026-09-10T13:00:00.000Z"),
+    );
+    expect(after.ledger.at(-1)?.type).toBe("VOID_BUY");
+    expect((await useCases().snapshot.execute()).cash.toString()).toBe(
+      "10000000.00",
+    );
+    await expect(
+      repo.voidBuy(ownerId, confirmed.transaction.id, asOf),
+    ).rejects.toMatchObject({ code: "BUY_ALREADY_VOIDED" });
+  });
 });

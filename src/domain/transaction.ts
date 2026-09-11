@@ -5,7 +5,7 @@ import { Quantity } from "./quantity";
 import { UnitPrice } from "./unit-price";
 import type { MarketDataMetadata } from "./market";
 
-export type TransactionType = "INITIAL_DEPOSIT" | "BUY" | "SELL";
+export type TransactionType = "INITIAL_DEPOSIT" | "BUY" | "VOID_BUY" | "SELL";
 export type TransactionSource = "SYSTEM_INITIALIZATION" | "USER_SIMULATION";
 export type MarketDate = string;
 
@@ -26,6 +26,7 @@ export interface Transaction {
   readonly marketData: MarketDataMetadata | null;
   readonly source: TransactionSource;
   readonly idempotencyKey: string | null;
+  readonly reversalOfTransactionId: TransactionId | null;
   readonly createdAt: Date;
   // ADR-0003: authoritative append order; the final tiebreak of the ledger
   // replay when executedAt/createdAt collide.
@@ -65,6 +66,7 @@ export function createInitialDeposit(
     marketData: null,
     source: "SYSTEM_INITIALIZATION",
     idempotencyKey: null,
+    reversalOfTransactionId: null,
     createdAt: params.createdAt,
     ledgerSequence: params.ledgerSequence ?? 0,
   };
@@ -113,6 +115,38 @@ export function createBuy(params: BuyParams): Transaction {
     marketData: params.marketData,
     source: "USER_SIMULATION",
     idempotencyKey: params.idempotencyKey,
+    reversalOfTransactionId: null,
+    createdAt: params.executedAt,
+    ledgerSequence: params.ledgerSequence ?? 0,
+  };
+}
+
+export interface VoidBuyParams {
+  readonly ledgerSequence?: number;
+  readonly transactionId: TransactionId;
+  readonly portfolioId: PortfolioId;
+  readonly reversalOfTransactionId: TransactionId;
+  readonly currency: Currency;
+  readonly executedAt: Date;
+}
+
+export function createVoidBuy(params: VoidBuyParams): Transaction {
+  return {
+    id: params.transactionId,
+    portfolioId: params.portfolioId,
+    type: "VOID_BUY",
+    instrumentId: null,
+    quantity: null,
+    unitPrice: null,
+    grossAmount: Money.zero(params.currency),
+    fees: Money.zero(params.currency),
+    currency: params.currency,
+    executedAt: params.executedAt,
+    marketSessionDate: null,
+    marketData: null,
+    source: "USER_SIMULATION",
+    idempotencyKey: null,
+    reversalOfTransactionId: params.reversalOfTransactionId,
     createdAt: params.executedAt,
     ledgerSequence: params.ledgerSequence ?? 0,
   };

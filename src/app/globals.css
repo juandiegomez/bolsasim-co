@@ -165,6 +165,55 @@ footer {
   font-weight: 600;
   cursor: pointer;
 }
+.text-action {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.text-action:hover {
+  text-decoration: underline;
+}
+.scenario-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+.scenario-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.scenario-heading h2 {
+  margin: 0;
+}
+.scenario-heading p {
+  margin-block: 0.25rem 0;
+}
+.scenario-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.scenario-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+}
 .recent-movements {
   margin-top: 2rem;
   border-top: 1px solid var(--border);

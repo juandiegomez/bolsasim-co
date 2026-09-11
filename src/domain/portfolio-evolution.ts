@@ -2,6 +2,7 @@ import { FinancialDecimal } from "./decimal";
 import type Decimal from "decimal.js";
 import { Money, roundMoney } from "./money";
 import type { Transaction } from "./transaction";
+import { getVoidedBuyIds } from "./portfolio-projector";
 
 export interface EvolutionPrice {
   readonly sessionDate: string;
@@ -24,13 +25,31 @@ export function projectPortfolioEvolution(input: {
   initialDeposit: Money;
   prices: ReadonlyMap<string, readonly EvolutionPrice[]>;
 }): readonly PortfolioEvolutionPoint[] {
+  const orderedLedger = [...input.ledger].sort(
+    (a, b) => a.ledgerSequence - b.ledgerSequence,
+  );
+  const voided = getVoidedBuyIds(orderedLedger);
+  const voidDateByBuyId = new Map<string, string>();
+  for (const entry of orderedLedger) {
+    if (entry.type === "VOID_BUY" && entry.reversalOfTransactionId) {
+      voidDateByBuyId.set(
+        entry.reversalOfTransactionId,
+        entry.executedAt.toISOString().slice(0, 10),
+      );
+    }
+  }
   return input.dates.map((date) => {
     let cash = Money.zero(input.initialDeposit.currency);
     const quantities = new Map<string, Decimal>();
-    for (const entry of input.ledger) {
+    for (const entry of orderedLedger) {
       if (entry.executedAt.toISOString().slice(0, 10) > date) continue;
       if (entry.type === "INITIAL_DEPOSIT") cash = cash.plus(entry.grossAmount);
-      if (entry.type === "BUY" && entry.instrumentId && entry.quantity) {
+      if (
+        entry.type === "BUY" &&
+        entry.instrumentId &&
+        entry.quantity &&
+        (!voided.has(entry.id) || (voidDateByBuyId.get(entry.id) ?? "") > date)
+      ) {
         cash = cash.minus(entry.grossAmount.plus(entry.fees));
         quantities.set(
           entry.instrumentId,

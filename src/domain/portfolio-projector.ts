@@ -23,6 +23,41 @@ function corrupt(detail: string): DomainError {
   );
 }
 
+// A void is an append-only fact. It never deletes the BUY; projections simply
+// stop considering that BUY from the effective point of the void onward.
+export function getVoidedBuyIds(
+  transactions: readonly Transaction[],
+): ReadonlySet<string> {
+  const buys = new Set<string>();
+  const voided = new Set<string>();
+  for (const transaction of transactions) {
+    if (transaction.type === "BUY") {
+      buys.add(transaction.id);
+      continue;
+    }
+    if (transaction.type !== "VOID_BUY") continue;
+    if (
+      transaction.source !== "USER_SIMULATION" ||
+      !transaction.reversalOfTransactionId ||
+      transaction.instrumentId !== null ||
+      transaction.quantity !== null ||
+      transaction.unitPrice !== null ||
+      !transaction.grossAmount.amount.isZero() ||
+      !transaction.fees.amount.isZero()
+    ) {
+      throw corrupt("la reversión no contiene una forma válida");
+    }
+    if (!buys.has(transaction.reversalOfTransactionId)) {
+      throw corrupt("la reversión apunta a una compra inexistente o futura");
+    }
+    if (voided.has(transaction.reversalOfTransactionId)) {
+      throw corrupt("una compra tiene más de una reversión");
+    }
+    voided.add(transaction.reversalOfTransactionId);
+  }
+  return voided;
+}
+
 // Domain § PortfolioProjector: replay in deterministic (executedAt, createdAt,
 // id) order; a corrupt sequence fails explicitly, never with a partial view.
 export function projectLedger(
@@ -38,6 +73,7 @@ export function projectLedger(
   let cash = new FinancialDecimal("0.00");
   let deposits = 0;
   let investedCost = new FinancialDecimal("0.00");
+  const voided = getVoidedBuyIds(ordered);
   for (const transaction of ordered) {
     if (transaction.currency !== expectedInitialDeposit.currency) {
       throw corrupt("moneda de movimiento distinta a la base del portafolio");
@@ -68,11 +104,16 @@ export function projectLedger(
       ) {
         throw corrupt("la compra no contiene todos los datos autoritativos");
       }
-      const debit = transaction.grossAmount.amount.plus(
-        transaction.fees.amount,
-      );
-      cash = cash.minus(debit);
-      investedCost = investedCost.plus(debit);
+      if (!voided.has(transaction.id)) {
+        const debit = transaction.grossAmount.amount.plus(
+          transaction.fees.amount,
+        );
+        cash = cash.minus(debit);
+        investedCost = investedCost.plus(debit);
+      }
+    } else if (transaction.type === "VOID_BUY") {
+      // The target BUY is excluded above; this ledger entry itself has no
+      // cash effect and remains available for audit/history.
     } else {
       throw corrupt(`tipo de movimiento no soportado: ${transaction.type}`);
     }

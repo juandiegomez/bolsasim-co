@@ -49,5 +49,6 @@ export function serializeTransaction(transaction: Transaction) {
     executedAt: transaction.executedAt.toISOString(),
     marketSessionDate: transaction.marketSessionDate,
     source: transaction.source,
+    reversalOfTransactionId: transaction.reversalOfTransactionId,
   };
 }

@@ -29,11 +29,18 @@ export const portfolios = pgTable(
       .notNull()
       .references(() => users.id),
     baseCurrency: text("base_currency").notNull(),
+    status: text("status").notNull().default("ACTIVE"),
+    label: text("label").notNull().default("Práctica"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (table) => [uniqueIndex("portfolios_owner_id_unique").on(table.ownerId)],
+  (table) => [
+    uniqueIndex("portfolios_owner_active_unique")
+      .on(table.ownerId)
+      .where(sql`status = 'ACTIVE'`),
+  ],
 );
 
 export const transactions = pgTable(
@@ -55,6 +62,7 @@ export const transactions = pgTable(
     marketData: jsonb("market_data"),
     source: text("source").notNull(),
     idempotencyKey: text("idempotency_key"),
+    reversalOfTransactionId: uuid("reversal_of_transaction_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     ledgerSequence: bigserial("ledger_sequence", { mode: "number" }).notNull(),
   },
@@ -71,6 +79,9 @@ export const transactions = pgTable(
       table.createdAt,
       table.id,
     ),
+    uniqueIndex("transactions_void_target_unique")
+      .on(table.reversalOfTransactionId)
+      .where(sql`type = 'VOID_BUY'`),
   ],
 );
 

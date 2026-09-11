@@ -10,6 +10,11 @@ import { createGetPortfolioSnapshot } from "@/application/use-cases/get-portfoli
 import { createInitializePortfolio } from "@/application/use-cases/initialize-portfolio";
 import { createListPortfolioTransactions } from "@/application/use-cases/list-portfolio-transactions";
 import { createGetPortfolioEvolution } from "@/application/use-cases/get-portfolio-evolution";
+import {
+  createListScenarios,
+  createResetScenario,
+  createVoidBuy,
+} from "@/application/use-cases/manage-scenarios";
 import { getMarketDataProvider } from "@/infrastructure/market/provider";
 
 export async function createDefaultPortfolioRouteDependencies() {
@@ -43,6 +48,14 @@ export async function createDefaultPortfolioRouteDependencies() {
       currentUser,
       initialDeposit,
     }),
+    scenarios: createListScenarios({ repository, currentUser }),
+    reset: createResetScenario({
+      repository,
+      currentUser,
+      clock,
+      initialDeposit,
+    }),
+    voidBuy: createVoidBuy({ repository, currentUser, clock }),
     logger: createLogger(environment.LOG_LEVEL),
   };
 }

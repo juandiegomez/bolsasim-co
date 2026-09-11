@@ -8,6 +8,7 @@ import { Quantity } from "@/domain/quantity";
 import {
   createBuy,
   createInitialDeposit,
+  createVoidBuy,
   type Transaction,
 } from "@/domain/transaction";
 import { UnitPrice } from "@/domain/unit-price";
@@ -41,6 +42,7 @@ function buyTransaction(): Transaction {
     marketData: null,
     source: "USER_SIMULATION",
     idempotencyKey: null,
+    reversalOfTransactionId: null,
     createdAt: executedAt,
     ledgerSequence: 0,
   };
@@ -96,6 +98,58 @@ describe("PORT-002: the ledger projects the portfolio deterministically", () => 
     );
     expect(projection.cash.toString()).toBe("9950000.00");
     expect(projection.investedCost.toString()).toBe("50000.00");
+  });
+  it("PED-002: a VOID_BUY keeps the ledger but removes the BUY from the projection", () => {
+    const metadata: MarketDataMetadata = {
+      providerId: "bolsasim-demo",
+      mode: "demo",
+      retrievedAt: executedAt,
+      priceBasis: "UNADJUSTED_CLOSE",
+      coverageFrom: "2026-08-03",
+      coverageTo: "2026-08-28",
+      adjustedPricePolicy: "Sin ajustes.",
+      limitations: ["Datos demo."],
+    };
+    const portfolioId = asPortfolioId(randomUUID());
+    const buy = createBuy({
+      transactionId: asTransactionId(randomUUID()),
+      portfolioId,
+      instrumentId: asInstrumentId("a1b2c3d4-0001-4a01-9a01-000000000001"),
+      quantity: Quantity.create("2.00000000"),
+      unitPrice: UnitPrice.create("25000.00000000", "COP"),
+      grossAmount: Money.create("50000.00", "COP"),
+      fees: Money.zero("COP"),
+      executedAt,
+      marketSessionDate: "2026-08-28",
+      marketData: metadata,
+      idempotencyKey: "void-test",
+      ledgerSequence: 1,
+    });
+    const reversal = createVoidBuy({
+      transactionId: asTransactionId(randomUUID()),
+      portfolioId,
+      reversalOfTransactionId: buy.id,
+      currency: "COP",
+      executedAt: new Date("2026-09-10T13:00:00.000Z"),
+      ledgerSequence: 2,
+    });
+    const projection = projectLedger(
+      [
+        createInitialDeposit({
+          transactionId: asTransactionId(randomUUID()),
+          portfolioId,
+          deposit: depositAmount,
+          executedAt,
+          createdAt: executedAt,
+          ledgerSequence: 0,
+        }),
+        buy,
+        reversal,
+      ],
+      depositAmount,
+    );
+    expect(projection.cash.toString()).toBe("10000000.00");
+    expect(projection.investedCost.toString()).toBe("0.00");
   });
   it("fails explicitly when the deposit repeats", () => {
     expect(

@@ -56,6 +56,7 @@ function mapTransaction(row: typeof transactions.$inferSelect): Transaction {
     marketSessionDate: row.marketSessionDate,
     marketData: row.marketData as never,
     idempotencyKey: row.idempotencyKey,
+    // A preview can only create BUY; the persisted row must not already be a reversal.
     ledgerSequence: row.ledgerSequence,
   });
 }
@@ -85,9 +86,6 @@ export function createDrizzleBuyPreviewRepository(
     },
     async confirm(input) {
       return database.transaction(async (tx) => {
-        await tx.execute(
-          sql`select id from ${portfolios} where id = ${input.portfolioId} for update`,
-        );
         const preview = (
           await tx
             .select()
@@ -96,9 +94,37 @@ export function createDrizzleBuyPreviewRepository(
             .limit(1)
         )[0];
         if (!preview || preview.portfolioId !== input.portfolioId) {
+          const archivedPreview = preview
+            ? (
+                await tx
+                  .select({ status: portfolios.status })
+                  .from(portfolios)
+                  .where(eq(portfolios.id, preview.portfolioId))
+                  .limit(1)
+              )[0]
+            : undefined;
+          if (archivedPreview?.status === "ARCHIVED") {
+            throw new DomainError(
+              "SCENARIO_ARCHIVED",
+              "La previsualización pertenece a un escenario archivado.",
+            );
+          }
           throw new DomainError(
             "PREVIEW_NOT_FOUND",
             "La previsualización no existe.",
+          );
+        }
+        const portfolio = (
+          await tx
+            .select({ status: portfolios.status })
+            .from(portfolios)
+            .where(eq(portfolios.id, input.portfolioId))
+            .for("update")
+        )[0];
+        if (!portfolio || portfolio.status === "ARCHIVED") {
+          throw new DomainError(
+            "SCENARIO_ARCHIVED",
+            "La previsualización pertenece a un escenario archivado.",
           );
         }
         if (preview.idempotencyKey) {
@@ -135,7 +161,7 @@ export function createDrizzleBuyPreviewRepository(
           );
         }
         const cash = await tx.execute(
-          sql`select coalesce(sum(case when type = 'INITIAL_DEPOSIT' then gross_amount else -(gross_amount + fees) end), 0)::numeric as cash from ${transactions} where portfolio_id = ${input.portfolioId}`,
+          sql`select coalesce(sum(case when type = 'INITIAL_DEPOSIT' then gross_amount when type = 'BUY' and not exists (select 1 from ${transactions} as voids where voids.type = 'VOID_BUY' and voids.reversal_of_transaction_id = ${transactions.id}) then -(gross_amount + fees) else 0 end), 0)::numeric as cash from ${transactions} where portfolio_id = ${input.portfolioId}`,
         );
         if (
           Money.create(
