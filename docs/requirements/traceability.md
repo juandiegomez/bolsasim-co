@@ -10,9 +10,9 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 | PORT-004  | Posición y valoración incompleta | Domain § Projections                     | API positions                 | unit + integration + UI  | yes       | yes         | partial  |
 | PORT-005  | Evolución fechada                | Product § J1                             | API evolution                 | unit + E2E               | yes       | yes         | partial  |
 | INST-001  | Instrumento abstracto            | Domain § Instrument                      | Market data + API instruments | contract + E2E           | yes       | yes         | partial  |
-| HIST-001  | Simulación sin efectos           | Product § J3; Domain § Service           | API simulations               | unit + integration       | yes       | no          | no       |
-| HIST-002  | Resolución de sesiones           | Data § Date resolution                   | Market data + API simulations | unit + contract          | yes       | no          | no       |
-| HIST-003  | Matemática histórica             | Domain § Historical simulation           | API simulations               | unit + E2E               | yes       | no          | no       |
+| HIST-001  | Simulación sin efectos           | Product § J3; Domain § Service           | API simulations               | unit + integration       | yes       | yes         | yes      |
+| HIST-002  | Resolución de sesiones           | Data § Date resolution                   | Market data + API simulations | unit + contract          | yes       | yes         | yes      |
+| HIST-003  | Matemática histórica             | Domain § Historical simulation           | API simulations               | unit + E2E               | yes       | yes         | yes      |
 | FIN-001   | Decimal y moneda explícita       | Domain § Value objects; ADR-0004         | todos                         | static + unit + DB       | yes       | partial     | partial  |
 | FIN-002   | Escalas y redondeo               | Domain § Precision; ADR-0004             | esquemas decimales            | boundary unit tests      | yes       | yes         | yes      |
 | FIN-003   | Fees cero y retorno bruto        | Product § Reglas                         | buy/simulation                | unit + UI                | yes       | yes         | yes      |
@@ -82,3 +82,15 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 - `implemented=yes` exige referencias a código y migraciones en la descripción del PR.
 - `verified=yes` exige el nombre de una prueba ejecutable y resultado CI.
 - Un cambio de comportamiento actualiza primero la especificación y, si cambia una decisión estructural, el ADR.
+
+## Adición de Fase 1 — Slice 4
+
+**HIST-001/002/003 — Simulación histórica:** `POST /api/v1/historical-simulations` resuelve el inicio con `ON_OR_AFTER` y el final con `ON_OR_BEFORE` (o la última sesión disponible), calcula cantidad teórica, inversión, remanente, valor final, P&L y retorno bruto con decimales exactos, y nunca persiste ni modifica el ledger. La UI independiente `/simulator` muestra resultado, serie, tabla, metadata, supuestos, etiqueta `demo` y errores de cobertura. La implementación usa el contrato de mercado existente y no selecciona un proveedor real; ADR-0005 sigue siendo el bloqueo de aceptación MVP con datos reales.
+
+| ID       | Implemented | Verified | Evidencia y límite                                                                                                                                                                                                   |
+| -------- | ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HIST-001 | yes         | yes      | `tests/unit/historical-simulation.test.ts`, `tests/contract/historical-simulation.test.ts` y `tests/e2e/historical-simulation.spec.ts`; la comprobación E2E compara el ledger antes y después sin crear movimientos. |
+| HIST-002 | yes         | yes      | `tests/contract/historical-simulation.test.ts` y `tests/e2e/historical-simulation.spec.ts`; cubren fin de semana, fecha final omitida y cobertura insuficiente.                                                      |
+| HIST-003 | yes         | yes      | `tests/unit/historical-simulation.test.ts`, contrato OpenAPI y E2E; fixture COP 1.000.000 a 100→120 produce COP 1.200.000 y 20%.                                                                                     |
+| UI-001   | partial     | partial  | La experiencia `/simulator` cubre loading, vacío, error y éxito; la evidencia E2E cubre el flujo demo y cobertura insuficiente.                                                                                      |
+| UI-002   | partial     | partial  | La UI muestra disclaimer, procedencia, etiqueta `demo`, base, supuestos y tabla accesible; la cobertura global de accesibilidad permanece transversal.                                                               |

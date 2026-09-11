@@ -1,4 +1,5 @@
-import type { InstrumentRecord, Page } from "@/domain/market";
+import type { Instrument } from "@/domain/instrument";
+import type { DataMode, InstrumentRecord, Page } from "@/domain/market";
 
 function serializeMetadata(metadata: {
   providerId: string;
@@ -22,17 +23,24 @@ function serializeMetadata(metadata: {
   };
 }
 
-function serializeInstrumentRecord(record: InstrumentRecord) {
+export function serializeInstrument(
+  instrument: Instrument,
+  dataMode: DataMode,
+) {
   return {
-    id: record.instrument.id,
-    symbol: record.instrument.symbol,
-    name: record.instrument.name,
-    exchange: record.instrument.exchange,
-    currency: record.instrument.currency,
-    type: record.instrument.type,
-    status: record.instrument.status,
-    dataMode: record.metadata.mode,
+    id: instrument.id,
+    symbol: instrument.symbol,
+    name: instrument.name,
+    exchange: instrument.exchange,
+    currency: instrument.currency,
+    type: instrument.type,
+    status: instrument.status,
+    dataMode,
   };
+}
+
+function serializeInstrumentRecord(record: InstrumentRecord) {
+  return serializeInstrument(record.instrument, record.metadata.mode);
 }
 
 // OpenAPI § Instrument/PriceObservation/HistoricalSeries: exact decimals as

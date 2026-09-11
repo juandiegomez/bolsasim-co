@@ -21,6 +21,11 @@ const STATUS_BY_DOMAIN_CODE: Record<
     title: "Unprocessable Entity",
     message: "El monto no alcanza para una compra liquidable.",
   },
+  HISTORICAL_AMOUNT_TOO_SMALL: {
+    status: 422,
+    title: "Unprocessable Entity",
+    message: "El monto no alcanza para una inversión histórica liquidable.",
+  },
   INSTRUMENT_NOT_TRADABLE: {
     status: 422,
     title: "Unprocessable Entity",

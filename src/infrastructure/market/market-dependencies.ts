@@ -4,6 +4,7 @@ import {
   createGetLatestPrice,
   createListInstruments,
 } from "@/application/use-cases/market-queries";
+import { createRunHistoricalSimulation } from "@/application/use-cases/run-historical-simulation";
 import { getEnvironment } from "@/infrastructure/config/env";
 import { createLogger } from "@/infrastructure/logging/logger";
 import { getMarketDataProvider } from "./provider";
@@ -17,6 +18,7 @@ export async function createDefaultMarketRouteDependencies() {
       detail: createGetInstrumentDetail({ provider }),
       latestPrice: createGetLatestPrice({ provider }),
       series: createGetHistoricalSeries({ provider }),
+      historicalSimulation: createRunHistoricalSimulation({ provider }),
     },
     logger: createLogger(environment.LOG_LEVEL),
   } as const;

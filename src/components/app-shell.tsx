@@ -13,6 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <nav aria-label="Navegación principal">
           <Link href="/instruments">Explorar</Link>
+          <Link href="/simulator">Simulación histórica</Link>
         </nav>
         <span>Simulador educativo</span>
       </header>

@@ -4,7 +4,7 @@ MVP de un simulador educativo de inversiones orientado al mercado colombiano. Pe
 
 ## Estado
 
-El **Slice 0 — Foundation** está verificado: aplicación Next.js ejecutable, configuración validada, health check, PostgreSQL/Drizzle, migraciones, suite completa y CI en verde. El **Slice 1 — Inicialización y saldo** materializa el ledger append-only, la inicialización idempotente de COP 10.000.000 y el dashboard de saldo. El **Slice 2 — Explorar y detalle** materializa el puerto `MarketDataProvider` con dataset demo etiquetado, búsqueda paginada, detalle con último cierre, histórico gráfico/tabular y caché en proceso. El **Slice 3 — Compra y dashboard** materializa previews idempotentes de compra, posiciones valoradas, movimientos del ledger y evolución diaria con aviso de incompletos. El simulador histórico no está implementado; no hay proveedor real aprobado (ADR-0005).
+El **Slice 0 — Foundation** está verificado: aplicación Next.js ejecutable, configuración validada, health check, PostgreSQL/Drizzle, migraciones, suite completa y CI en verde. El **Slice 1 — Inicialización y saldo** materializa el ledger append-only, la inicialización idempotente de COP 10.000.000 y el dashboard de saldo. El **Slice 2 — Explorar y detalle** materializa el puerto `MarketDataProvider` con dataset demo etiquetado, búsqueda paginada, detalle con último cierre, histórico gráfico/tabular y caché en proceso. El **Slice 3 — Compra y dashboard** materializa previews idempotentes de compra, posiciones valoradas, movimientos del ledger y evolución diaria con aviso de incompletos. El **Slice 4 — Simulación histórica** materializa el calculador sin persistencia, resolución direccional de fechas, API y pantalla independiente con serie, tabla, supuestos y procedencia. No hay proveedor real aprobado (ADR-0005).
 
 Decisiones iniciales:
 
@@ -50,7 +50,7 @@ Health: [GET /api/v1/health](http://127.0.0.1:3000/api/v1/health). Devuelve `sta
 
 El portafolio expone `POST /api/v1/portfolios/initialize` (idempotente; crea usuario local, portafolio y el depósito inicial único de COP 10.000.000) y `GET /api/v1/portfolio` (snapshot derivado del ledger). La página inicial muestra los estados de carga, inicialización, saldo y error.
 
-El mercado expone `GET /api/v1/instruments` (listado/búsqueda con cursor y límite), `GET /api/v1/instruments/{id}`, `/price` (último cierre) y `/history` (serie diaria). La fuente activa es el dataset demo commiteado en `datasets/demo` (manifiesto con checksums); conmutar a `MARKET_DATA_ADAPTER=file` habilita un dataset real cuando ADR-0005 se apruebe. El detalle en `/instruments` muestra metadata, último cierre e histórico gráfico/tabular con la etiqueta demo persistente.
+El mercado expone `GET /api/v1/instruments` (listado/búsqueda con cursor y límite), `GET /api/v1/instruments/{id}`, `/price` (último cierre) y `/history` (serie diaria). La simulación histórica usa `POST /api/v1/historical-simulations` y la pantalla independiente `/simulator`; no crea movimientos del ledger. La fuente activa es el dataset demo commiteado en `datasets/demo` (manifiesto con checksums); conmutar a `MARKET_DATA_ADAPTER=file` habilita un dataset real cuando ADR-0005 se apruebe. El detalle en `/instruments` muestra metadata, último cierre e histórico gráfico/tabular con la etiqueta demo persistente.
 
 La compra simulada expone `POST /api/v1/buy-previews` (preview de cinco minutos con cantidad, débito, remanente y fees cero) y `POST /api/v1/buy-previews/{previewId}/confirm` con header `Idempotency-Key` (201 primera vez, 200 en replay; 409 ante conflictos; 410 si venció). El portafolio expone además `GET /api/v1/portfolio/evolution` (evolución diaria con arrastre de cierre; rango máximo 365 días) y `GET /api/v1/portfolio/transactions` (ledger paginado). El dashboard muestra métricas, posiciones, movimientos y evolución; un valor incompleto nunca se representa como cero.
 
@@ -84,7 +84,7 @@ Errores DB: `DATABASE_UNAVAILABLE` o `MIGRATION_FAILED` con exit code 1. Verific
 
 ### Alcance y evidencia
 
-Consulta [ADR-0009](docs/adr/0009-slice-zero-foundation.md) para package manager, liveness y migración sin esquema de negocio, [validación del Slice 0](docs/testing/slice-zero-validation.md), [Slice 1](docs/testing/slice-one-validation.md), [Slice 2](docs/testing/slice-two-validation.md) y [Slice 3](docs/testing/slice-three-validation.md) para evidencia y límites. ADR-0005 permanece abierto; el mercado opera con datos demo etiquetados.
+Consulta [ADR-0009](docs/adr/0009-slice-zero-foundation.md) para package manager, liveness y migración sin esquema de negocio, [validación del Slice 0](docs/testing/slice-zero-validation.md), [Slice 1](docs/testing/slice-one-validation.md), [Slice 2](docs/testing/slice-two-validation.md), [Slice 3](docs/testing/slice-three-validation.md) y [Slice 4](docs/testing/slice-four-validation.md) para evidencia y límites. ADR-0005 permanece abierto; el mercado opera con datos demo etiquetados.
 
 ## Aviso
 
