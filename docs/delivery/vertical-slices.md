@@ -56,6 +56,10 @@ historial; doble anulación falla explícitamente; reiniciar crea una práctica
 nueva en COP 10.000.000 y archiva la anterior; pruebas de proyección,
 integración y E2E pasan.
 
+La evolución conserva una compra en las fechas anteriores al `VOID_BUY` y la
+excluye desde su fecha efectiva en adelante; `ledgerSequence` resuelve
+movimientos del mismo día.
+
 ## Definition of Ready por slice
 
 - IDs y criterios sin decisiones pendientes;

@@ -18,6 +18,8 @@ tags:
     description: Previsualización y confirmación de compras simuladas.
   - name: Historical simulation
     description: Cálculos históricos sin efectos persistentes.
+  - name: Scenarios
+    description: Prácticas locales archivables y anulaciones reversibles.
 paths:
   /health:
     get:
@@ -138,6 +140,54 @@ paths:
                   nextCursor:
                     anyOf: [{ type: string }, { type: "null" }]
         "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /portfolio/transactions/{transactionId}/void:
+    post:
+      tags: [Scenarios]
+      operationId: voidBuy
+      summary: Anula una compra sin borrar el ledger
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "201":
+          description: Anulación registrada
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VoidBuyResult" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /scenarios:
+    get:
+      tags: [Scenarios]
+      operationId: listScenarios
+      summary: Lista prácticas activas y archivadas
+      responses:
+        "200":
+          description: Escenarios locales del usuario
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScenarioList" }
+        "400": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+  /scenarios/reset:
+    post:
+      tags: [Scenarios]
+      operationId: resetScenario
+      summary: Archiva la práctica activa y crea una nueva
+      responses:
+        "201":
+          description: Nueva práctica activa creada
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScenarioReset" }
+        "409": { $ref: "#/components/responses/Problem" }
         default: { $ref: "#/components/responses/Problem" }
   /instruments:
     get:
@@ -322,6 +372,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     Cursor:
       name: cursor
       in: query
@@ -453,10 +508,20 @@ components:
         metadata: { $ref: "#/components/schemas/MarketDataMetadata" }
     Transaction:
       type: object
-      required: [id, type, grossAmount, fees, currency, executedAt, source]
+      required:
+        [
+          id,
+          type,
+          grossAmount,
+          fees,
+          currency,
+          executedAt,
+          source,
+          reversalOfTransactionId,
+        ]
       properties:
         id: { type: string, format: uuid }
-        type: { type: string, enum: [INITIAL_DEPOSIT, BUY] }
+        type: { type: string, enum: [INITIAL_DEPOSIT, BUY, VOID_BUY] }
         instrumentId:
           anyOf: [{ type: string, format: uuid }, { type: "null" }]
         quantity:
@@ -470,6 +535,8 @@ components:
         marketSessionDate:
           anyOf: [{ $ref: "#/components/schemas/MarketDate" }, { type: "null" }]
         source: { type: string }
+        reversalOfTransactionId:
+          anyOf: [{ type: string, format: uuid }, { type: "null" }]
     Position:
       type: object
       required:
@@ -581,6 +648,42 @@ components:
       required: [transaction, portfolio]
       properties:
         transaction: { $ref: "#/components/schemas/Transaction" }
+        portfolio: { $ref: "#/components/schemas/PortfolioSnapshot" }
+    Scenario:
+      type: object
+      additionalProperties: false
+      required: [id, portfolioId, label, status, createdAt, archivedAt]
+      properties:
+        id: { type: string, format: uuid }
+        portfolioId: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        status: { type: string, enum: [ACTIVE, ARCHIVED] }
+        createdAt: { type: string, format: date-time }
+        archivedAt:
+          anyOf: [{ type: string, format: date-time }, { type: "null" }]
+    ScenarioList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Scenario" }
+    ScenarioReset:
+      type: object
+      additionalProperties: false
+      required: [archivedScenario, activeScenario, portfolio]
+      properties:
+        archivedScenario:
+          anyOf: [{ $ref: "#/components/schemas/Scenario" }, { type: "null" }]
+        activeScenario: { $ref: "#/components/schemas/Scenario" }
+        portfolio: { $ref: "#/components/schemas/PortfolioSnapshot" }
+    VoidBuyResult:
+      type: object
+      additionalProperties: false
+      required: [voidTransaction, portfolio]
+      properties:
+        voidTransaction: { $ref: "#/components/schemas/Transaction" }
         portfolio: { $ref: "#/components/schemas/PortfolioSnapshot" }
     HistoricalSimulation:
       type: object

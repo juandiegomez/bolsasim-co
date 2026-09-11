@@ -78,6 +78,8 @@ El usuario elige instrumento, monto, fecha inicial y fecha final opcional. El in
 - **HIST-001:** la simulación separa parámetros y resultado, no se persiste y declara procedencia y supuestos.
 - **HIST-002:** fecha inicial usa primera sesión posterior o igual; fecha final usa última sesión anterior o igual; sin final se usa la última disponible.
 - **HIST-003:** la serie usa una sola base de precio. No se afirma retorno total si dividendos y ajustes no están verificados.
+- **PED-001:** cada usuario local puede conservar escenarios archivados y solo uno permanece activo; los escenarios archivados son consultables y no mutables.
+- **PED-002:** deshacer una compra registra `VOID_BUY` apuntando al `BUY` original. La compra no se borra; el snapshot actual y la evolución desde la fecha de anulación la excluyen.
 - **FIN-001:** dinero, precios y cantidades usan decimal exacto y moneda explícita.
 - **FIN-002:** cantidad se redondea hacia abajo a 8 decimales; dinero se liquida `ROUND_HALF_UP` a 2.
 - **FIN-003:** fees son cero y los resultados se etiquetan como retorno bruto.
@@ -101,24 +103,26 @@ Objetivos no funcionales adicionales: TypeScript estricto, dominio independiente
 
 ## Criterios de aceptación
 
-| ID            | Evidencia esperada                                                                                                           |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| PORT-001      | Inicializar dos veces deja un solo depósito y saldo COP 10.000.000.                                                          |
-| PORT-002      | Reproducir transacciones en orden reconstruye exactamente saldo y posiciones.                                                |
-| PORT-003      | Comprar COP 2.000.000 desde COP 10.000.000 deja COP 8.000.000 si la división es exacta; exceso y concurrencia no sobregiran. |
-| PORT-004      | Precio ausente produce valoración incompleta y un error categorizado, nunca `0`.                                             |
-| PORT-005      | Cada punto revela fecha de valoración y distingue huecos sin precio anterior.                                                |
-| INST-001      | Búsqueda y detalle devuelven metadata completa y solo acciones COP activas son operables.                                    |
-| HIST-001      | Ejecutar una simulación no crea transacciones.                                                                               |
-| HIST-002      | Un fin de semana usa las sesiones efectivas según la regla direccional.                                                      |
-| HIST-003      | COP 1.000.000 a precios 100 y 120 produce 10.000 unidades, COP 1.200.000 y 20%.                                              |
-| FIN-001/002   | Casos con decimales cumplen escala y redondeo sin `number` financiero.                                                       |
-| MDATA-001/002 | Respuestas muestran metadata; errores del proveedor no activan mocks silenciosamente.                                        |
-| UI-001/002    | Los cinco estados y avisos son navegables por teclado y comprensibles sin depender del color.                                |
-| SEC-001       | Alterar precio o saldo en cliente no altera el cálculo confirmado por servidor.                                              |
-| OBS-001       | Error HTTP y log correlacionado comparten `requestId` sin secretos.                                                          |
-| PERF-001      | Solicitudes equivalentes dentro del TTL reutilizan datos y listados respetan límites/cursor.                                 |
-| SDD-001       | El PR referencia requirements, contratos, ADRs y evidencia de gates aplicables.                                              |
+| ID            | Evidencia esperada                                                                                                                       |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| PORT-001      | Inicializar dos veces deja un solo depósito y saldo COP 10.000.000.                                                                      |
+| PORT-002      | Reproducir transacciones en orden reconstruye exactamente saldo y posiciones.                                                            |
+| PORT-003      | Comprar COP 2.000.000 desde COP 10.000.000 deja COP 8.000.000 si la división es exacta; exceso y concurrencia no sobregiran.             |
+| PORT-004      | Precio ausente produce valoración incompleta y un error categorizado, nunca `0`.                                                         |
+| PORT-005      | Cada punto revela fecha de valoración y distingue huecos sin precio anterior.                                                            |
+| INST-001      | Búsqueda y detalle devuelven metadata completa y solo acciones COP activas son operables.                                                |
+| HIST-001      | Ejecutar una simulación no crea transacciones.                                                                                           |
+| HIST-002      | Un fin de semana usa las sesiones efectivas según la regla direccional.                                                                  |
+| HIST-003      | COP 1.000.000 a precios 100 y 120 produce 10.000 unidades, COP 1.200.000 y 20%.                                                          |
+| PED-001       | Reiniciar archiva la práctica anterior, crea una nueva con COP 10.000.000 y conserva el escenario anterior como ejemplo de solo lectura. |
+| PED-002       | Deshacer una compra conserva ambos movimientos, restaura el snapshot actual y excluye la compra desde la fecha del `VOID_BUY`.           |
+| FIN-001/002   | Casos con decimales cumplen escala y redondeo sin `number` financiero.                                                                   |
+| MDATA-001/002 | Respuestas muestran metadata; errores del proveedor no activan mocks silenciosamente.                                                    |
+| UI-001/002    | Los cinco estados y avisos son navegables por teclado y comprensibles sin depender del color.                                            |
+| SEC-001       | Alterar precio o saldo en cliente no altera el cálculo confirmado por servidor.                                                          |
+| OBS-001       | Error HTTP y log correlacionado comparten `requestId` sin secretos.                                                                      |
+| PERF-001      | Solicitudes equivalentes dentro del TTL reutilizan datos y listados respetan límites/cursor.                                             |
+| SDD-001       | El PR referencia requirements, contratos, ADRs y evidencia de gates aplicables.                                                          |
 
 ## Edge cases y errores
 
@@ -130,6 +134,9 @@ Objetivos no funcionales adicionales: TypeScript estricto, dominio independiente
 - instrumento inexistente, inactivo, no `Equity` o en moneda diferente;
 - proveedor caído, limitado, con datos duplicados, desordenados o fuera de cobertura;
 - fecha inicial posterior a la final y rango sin sesiones válidas;
+- compra inexistente, depósito inicial, compra ya anulada o compra de un escenario archivado;
+- dos reinicios o anulaciones concurrentes no crean escenarios activos duplicados ni dos `VOID_BUY` para el mismo `BUY`;
+- una anulación en una fecha posterior conserva la compra en puntos de evolución anteriores y la excluye desde su fecha efectiva;
 - posición con split conocido sin tratamiento: valoración suspendida y limitación visible;
 - portafolio sin posiciones, histórico sin movimientos y denominador cero: rentabilidad «no aplica».
 

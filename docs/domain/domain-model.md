@@ -45,7 +45,7 @@ Tiene ID, owner, moneda base COP, timestamps y movimientos. Invariantes:
 Concepto dentro del aggregate, derivado del ledger. No almacena `currentBalance` como verdad. Para la secuencia soportada:
 
 ```text
-cash = Σ INITIAL_DEPOSIT.grossAmount − Σ (BUY.grossAmount + BUY.fees)
+cash = Σ INITIAL_DEPOSIT.grossAmount − Σ effective(BUY.grossAmount + BUY.fees)
 ```
 
 ### Instrument
@@ -59,18 +59,26 @@ Movimiento inmutable:
 ```text
 id, portfolioId, type, instrumentId?, quantity?, unitPrice?,
 grossAmount, fees, currency, executedAt, marketSessionDate?,
-source, idempotencyKey?, createdAt, ledgerSequence, marketData?
+source, idempotencyKey?, reversalOfTransactionId?, createdAt,
+ledgerSequence, marketData?
 ```
 
 `ledgerSequence` es el orden de append autoritativo del ledger (ADR-0003): el proyector lo usa como desempate cuando `executedAt`/`createdAt` coinciden. El `BUY` conserva la metadata completa del mercado usado (`marketData`) y la clave de idempotencia que lo produjo.
 
-Tipos conceptuales: `INITIAL_DEPOSIT`, `BUY`, `SELL`. Para depósito, instrumento/cantidad/precio son nulos. Para compra son obligatorios y `grossAmount = roundMoney(quantity × unitPrice)`. `SELL` está reservado y se rechaza hasta tener requirement y política de costo aprobados.
+Tipos conceptuales: `INITIAL_DEPOSIT`, `BUY`, `VOID_BUY`, `SELL`. Para depósito, instrumento/cantidad/precio son nulos. Para compra son obligatorios y `grossAmount = roundMoney(quantity × unitPrice)`. `VOID_BUY` contiene `reversalOfTransactionId`, no duplica importes ni precios y solo puede apuntar a un `BUY` del mismo portfolio. `SELL` está reservado y se rechaza hasta tener requirement y política de costo aprobados.
 
 `source` distingue `SYSTEM_INITIALIZATION` y `USER_SIMULATION`. Una compra
 conserva además `marketData` inmutable (`providerId`, `mode`, `priceBasis`,
 `retrievedAt`) y la sesión de mercado usada; así el ledger preserva la
 procedencia y base del precio sin convertirlas en texto libre dentro de
 `source`.
+
+### Scenario
+
+En el MVP local, cada registro `Portfolio` representa una práctica/escenario.
+Tiene `label`, `status` (`ACTIVE | ARCHIVED`) y `archivedAt`. Solo un escenario
+puede estar activo por usuario. Los escenarios archivados conservan su ledger
+y son de solo lectura.
 
 ### BuyPreview
 
@@ -102,7 +110,12 @@ Entrada: monto solicitado y precio. Calcula cantidad hacia abajo a 8 decimales, 
 
 ### PortfolioProjector
 
-Reproduce el ledger en orden autoritativo de append (`ledger_sequence`), con `executedAt`/`createdAt`/`id` como desempates secundarios; valida la secuencia y deriva efectivo y posiciones. Una secuencia corrupta retorna un error explícito, no una proyección parcial silenciosa.
+Reproduce el ledger en orden autoritativo de append (`ledger_sequence`), con `executedAt`/`createdAt`/`id` como desempates secundarios; valida la secuencia y deriva efectivo y posiciones. Un `VOID_BUY` excluye su `BUY` de la proyección actual. Una secuencia corrupta retorna un error explícito, no una proyección parcial silenciosa.
+
+La evolución diaria aplica el ledger por fecha efectiva: antes de la fecha del
+`VOID_BUY` conserva la compra; desde esa fecha excluye el `BUY` y el `VOID_BUY`
+no agrega efectivo por sí mismo. El `ledgerSequence` resuelve anulaciones y
+compras del mismo día.
 
 ### HistoricalInvestmentCalculator
 
@@ -121,7 +134,7 @@ No persiste ni emite transacciones. Toda la serie usa la misma moneda y base de 
 
 ## Puertos de aplicación
 
-- `PortfolioRepository`: inicialización idempotente, lectura del ledger y append atómico.
+- `PortfolioRepository`: inicialización idempotente, lectura del escenario activo, lectura de escenarios archivados, append atómico, anulación bloqueada y reinicio transaccional.
 - `BuyPreviewRepository`: guardar, bloquear y consumir previews.
 - `MarketDataProvider`: instrumentos, precios y series.
 - `Clock`: instante UTC determinista.
@@ -130,7 +143,7 @@ No persiste ni emite transacciones. Toda la serie usa la misma moneda y base de 
 
 ## Errores de dominio
 
-`INVALID_MONEY`, `INVALID_SCALE`, `INSTRUMENT_NOT_TRADABLE`, `CURRENCY_MISMATCH`, `PORTFOLIO_NOT_INITIALIZED`, `INSUFFICIENT_FUNDS`, `PREVIEW_EXPIRED`, `PREVIEW_ALREADY_USED`, `IDEMPOTENCY_CONFLICT`, `INVALID_QUERY`, `MARKET_DATA_UNAVAILABLE`, `NO_MARKET_SESSION`, `UNSUPPORTED_PRICE_BASIS`, `CORPORATE_ACTION_UNSUPPORTED`, `CORRUPT_LEDGER`. Los errores del proveedor de mercado (`INSTRUMENT_NOT_FOUND`, `NO_MARKET_DATA`, `INVALID_DATE_RANGE`, `COVERAGE_INSUFFICIENT`, `INVALID_PROVIDER_DATA`, `PROVIDER_UNAVAILABLE`, `RATE_LIMITED`) se definen en el [contrato de datos de mercado](../data/market-data-contract.md).
+`INVALID_MONEY`, `INVALID_SCALE`, `INSTRUMENT_NOT_TRADABLE`, `CURRENCY_MISMATCH`, `PORTFOLIO_NOT_INITIALIZED`, `INSUFFICIENT_FUNDS`, `PREVIEW_EXPIRED`, `PREVIEW_ALREADY_USED`, `IDEMPOTENCY_CONFLICT`, `INVALID_QUERY`, `MARKET_DATA_UNAVAILABLE`, `NO_MARKET_SESSION`, `UNSUPPORTED_PRICE_BASIS`, `CORPORATE_ACTION_UNSUPPORTED`, `CORRUPT_LEDGER`, `BUY_NOT_FOUND`, `INVALID_VOID_TARGET`, `BUY_ALREADY_VOIDED`, `SCENARIO_ARCHIVED`. Los errores del proveedor de mercado (`INSTRUMENT_NOT_FOUND`, `NO_MARKET_DATA`, `INVALID_DATE_RANGE`, `COVERAGE_INSUFFICIENT`, `INVALID_PROVIDER_DATA`, `PROVIDER_UNAVAILABLE`, `RATE_LIMITED`) se definen en el [contrato de datos de mercado](../data/market-data-contract.md).
 
 Los errores son resultados tipados o excepciones de dominio controladas; los adapters HTTP los traducen sin filtrar detalles internos.
 

@@ -22,6 +22,20 @@ borrado físico: se perdería la explicación de lo ocurrido.
   inicial configurado. Nunca borra escenarios ni movimientos.
 - La interfaz usa “Deshacer compra”, “Conservar como ejemplo” y “Reiniciar
   práctica”. No habilita ventas, FX ni edición libre de precios/cantidades.
+- En almacenamiento, el registro `portfolios` representa el escenario y añade
+  `status=ACTIVE|ARCHIVED`, `label` y `archivedAt`. Un índice único parcial
+  garantiza como máximo un escenario activo por usuario local.
+- “Conservar como ejemplo” es la confirmación visible del reinicio: el
+  escenario anterior queda archivado y consultable, y se crea una práctica
+  activa nueva. Los escenarios archivados son de solo lectura en este slice.
+- Una anulación cambia la proyección desde la fecha efectiva del `VOID_BUY` en
+  adelante. Los puntos de evolución anteriores conservan la compra; el punto
+  de la fecha de anulación y los posteriores ya excluyen sus cantidades,
+  efectivo y valor. El orden `ledgerSequence` resuelve movimientos del mismo
+  día.
+- Las previews activas pertenecen al portafolio/escenario que las creó. Al
+  archivar un escenario dejan de poder confirmarse y responden con
+  `SCENARIO_ARCHIVED`.
 
 ## Consecuencias
 
