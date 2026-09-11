@@ -250,6 +250,46 @@ footer {
   color: var(--muted);
   font-size: 0.875rem;
 }
+.detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.metadata-line {
+  overflow-wrap: anywhere;
+}
+.learning-note {
+  margin-block: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: #f8fafb;
+}
+.learning-note summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+.learning-note p {
+  margin-block: 0.75rem 0;
+}
+.learning-note dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+}
+.learning-note dt {
+  font-weight: 700;
+}
+.learning-note dd {
+  margin: 0.15rem 0 0;
+}
+.learning-note ul {
+  margin-block: 0.75rem 0 0;
+}
+.portfolio-guide {
+  margin-top: 1.25rem;
+}
 form[role="search"] {
   display: flex;
   flex-wrap: wrap;

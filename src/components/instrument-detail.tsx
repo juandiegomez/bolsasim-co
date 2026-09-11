@@ -223,8 +223,9 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
 
   return (
     <div aria-live="polite">
-      <p>
+      <p className="detail-links">
         <Link href="/instruments">Volver a explorar</Link>
+        <Link href="/">Ver mi portafolio y movimientos</Link>
       </p>
       <h2>
         {instrument.symbol}{" "}
@@ -242,9 +243,47 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
           {latest.metadata.mode}) · obtenido {formattedDate}
         </dd>
       </dl>
+      <details className="learning-note">
+        <summary>¿Qué significa este precio?</summary>
+        <p>
+          Es el último cierre de una sesión de mercado disponible en el dataset.
+          No es una cotización en tiempo real ni una recomendación de compra.
+        </p>
+        <dl>
+          <div>
+            <dt>Fecha de sesión</dt>
+            <dd>{latest.sessionDate}: el día al que pertenece el cierre.</dd>
+          </div>
+          <div>
+            <dt>Moneda</dt>
+            <dd>
+              {latest.currency}: el precio está expresado en pesos colombianos.
+            </dd>
+          </div>
+          <div>
+            <dt>Base UNADJUSTED_CLOSE</dt>
+            <dd>
+              Cierre sin ajustes automáticos por dividendos o eventos
+              corporativos. Para este ejercicio se usa una sola base de precio.
+            </dd>
+          </div>
+          <div>
+            <dt>Fuente {latest.metadata.mode === "demo" ? "demo" : "real"}</dt>
+            <dd>
+              {latest.metadata.mode === "demo"
+                ? "Dato de demostración incluido para aprender; no representa una cotización real."
+                : "Dato obtenido de la fuente configurada para el ejercicio."}
+            </dd>
+          </div>
+          <div>
+            <dt>Obtenido</dt>
+            <dd>Momento en que la aplicación consultó ese dato.</dd>
+          </div>
+        </dl>
+      </details>
       {canBuy && (
         <section className="purchase-panel" aria-labelledby="purchase-title">
-          <h3 id="purchase-title">Simular compra hoy</h3>
+          <h3 id="purchase-title">Simular una compra</h3>
           <p>
             Usaremos el último cierre disponible, no un precio en tiempo real.
             El capital es ficticio.
@@ -296,6 +335,38 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
                   <dd>$ {preview.remainder.amount} COP</dd>
                 </div>
               </dl>
+              <details className="learning-note">
+                <summary>¿Cómo leer esta previsualización?</summary>
+                <dl>
+                  <div>
+                    <dt>Precio usado</dt>
+                    <dd>
+                      El cierre mostrado arriba; no cambia durante esta
+                      previsualización.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Cantidad estimada</dt>
+                    <dd>
+                      Fracciones de acción que se pueden comprar con tu monto.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Débito</dt>
+                    <dd>
+                      Lo que se descuenta de tu efectivo. En este MVP las
+                      comisiones son COP 0.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Remanente</dt>
+                    <dd>
+                      La parte de tu monto que no alcanza para otra fracción
+                      liquidable.
+                    </dd>
+                  </div>
+                </dl>
+              </details>
               <button
                 className="action"
                 type="button"
@@ -393,11 +464,14 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
           {seriesUnavailable}); los datos visibles no se sustituyen por ceros.
         </p>
       )}
-      <ul>
-        {latest.metadata.limitations.map((limitation) => (
-          <li key={limitation}>{limitation}</li>
-        ))}
-      </ul>
+      <details className="learning-note">
+        <summary>¿Qué limitaciones tienen estos datos?</summary>
+        <ul>
+          {latest.metadata.limitations.map((limitation) => (
+            <li key={limitation}>{limitation}</li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

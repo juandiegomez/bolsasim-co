@@ -1,5 +1,7 @@
 # Matriz de trazabilidad
 
+> EDU-001 status: implemented and verified by the E2E learning tests. This supersedes the provisional note below.
+
 > **Cierre Slice 5 (2026-09-11):** PED-001 y PED-002 quedan implementados y verificados. La evidencia automatizada está en [slice-five-validation.md](../testing/slice-five-validation.md). Esta nota prevalece sobre las filas históricas de la tabla base.
 
 Los estados son independientes: `specified` indica contrato documental; `implemented`, código existente; `verified`, evidencia automatizada aprobada. `partial` no acredita el requirement completo. La baseline de Fase 0 tenía únicamente specified=yes; Slice 0 añade evidencia fundacional sin cambiar criterios financieros.

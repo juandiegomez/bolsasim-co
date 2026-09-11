@@ -243,6 +243,28 @@ export function HistoricalSimulator() {
               El inicio busca la siguiente sesión disponible y el final la
               sesión anterior. No se interpolan días ni precios.
             </p>
+            <details className="learning-note">
+              <summary>¿Qué está calculando esta simulación?</summary>
+              <p>
+                La aplicación imagina que invertiste el monto inicial en la
+                primera sesión válida y lo conserva invertido hasta la fecha
+                final. No crea una compra en tu portafolio.
+              </p>
+              <ul>
+                <li>
+                  <strong>Fecha inicial:</strong> si no hubo mercado ese día, se
+                  usa la siguiente sesión disponible.
+                </li>
+                <li>
+                  <strong>Fecha final:</strong> se usa la sesión anterior o
+                  igual; no se inventan precios para fines de semana.
+                </li>
+                <li>
+                  <strong>Retorno bruto:</strong> compara valor final contra
+                  monto invertido y no incluye dividendos ni impuestos.
+                </li>
+              </ul>
+            </details>
             <button className="action" type="submit" disabled={running}>
               {running ? "Calculando…" : "Simular inversión histórica"}
             </button>
@@ -284,6 +306,39 @@ function HistoricalResult({ result }: { result: SimulationDTO }) {
         {result.initialPrice.metadata.priceBasis} · fuente:{" "}
         {result.initialPrice.metadata.providerId}.
       </p>
+      <details className="learning-note">
+        <summary>¿Cómo leer este resultado?</summary>
+        <p>
+          La simulación usa una sola base de precio para todo el periodo. Los
+          valores son teóricos: sirven para aprender el efecto del tiempo y del
+          precio, no predicen resultados futuros.
+        </p>
+        <dl>
+          <div>
+            <dt>Cantidad teórica</dt>
+            <dd>Fracciones que habrías comprado con el monto inicial.</dd>
+          </div>
+          <div>
+            <dt>Valor final</dt>
+            <dd>Cuánto valdría esa cantidad en la fecha final elegida.</dd>
+          </div>
+          <div>
+            <dt>Remanente</dt>
+            <dd>
+              Parte del monto que no se pudo convertir en una fracción
+              liquidable.
+            </dd>
+          </div>
+          <div>
+            <dt>Base {result.initialPrice.metadata.priceBasis}</dt>
+            <dd>
+              Cierre sin ajustes automáticos; la fuente es{" "}
+              {result.initialPrice.metadata.providerId} y el modo es{" "}
+              {result.initialPrice.metadata.mode}.
+            </dd>
+          </div>
+        </dl>
+      </details>
       <dl className="simulation-summary">
         <div>
           <dt>Monto inicial</dt>

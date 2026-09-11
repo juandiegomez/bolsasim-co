@@ -114,9 +114,12 @@ async function queryPortfolioState(): Promise<DashboardState> {
     });
     if (response.ok) {
       const snapshot = (await response.json()) as PortfolioSnapshotDTO;
-      const movements = await fetch("/api/v1/portfolio/transactions?limit=10", {
-        headers: { Accept: "application/json" },
-      });
+      const movements = await fetch(
+        "/api/v1/portfolio/transactions?limit=100",
+        {
+          headers: { Accept: "application/json" },
+        },
+      );
       const transactions = movements.ok
         ? ((await movements.json()) as { items: TransactionDTO[] }).items
         : [];
@@ -270,6 +273,36 @@ export function PortfolioDashboard() {
             {metric("Valor total", state.snapshot.totalValue)}
             {metric("P&L", state.snapshot.pnl)}
           </dl>
+          <details className="learning-note portfolio-guide">
+            <summary>¿Cómo leer tu portafolio?</summary>
+            <dl>
+              <div>
+                <dt>Dinero aún no invertido</dt>
+                <dd>Dinero ficticio que todavía no está invertido.</dd>
+              </div>
+              <div>
+                <dt>Costo invertido</dt>
+                <dd>
+                  Lo que costaron las compras que siguen activas, incluidas sus
+                  comisiones.
+                </dd>
+              </div>
+              <div>
+                <dt>Valor total</dt>
+                <dd>
+                  Efectivo más el valor actual de tus posiciones. Puede quedar
+                  incompleto si falta un precio.
+                </dd>
+              </div>
+              <div>
+                <dt>P&amp;L</dt>
+                <dd>
+                  Ganancia o pérdida frente al capital inicial; no es una
+                  promesa de rendimiento futuro.
+                </dd>
+              </div>
+            </dl>
+          </details>
           <section className="scenario-panel" aria-labelledby="scenario-title">
             <div className="scenario-heading">
               <div>
@@ -369,6 +402,12 @@ export function PortfolioDashboard() {
             aria-labelledby="movements-title"
           >
             <h2 id="movements-title">Movimientos recientes</h2>
+            <p>
+              Aquí puedes revisar todas las operaciones del escenario activo.
+              Para corregir una compra, usa <strong>Deshacer compra</strong> en
+              su fila: el historial no se borra, pero la compra deja de afectar
+              el saldo y las posiciones.
+            </p>
             {state.movementsUnavailable ? (
               <p role="status">{movementsWarning}</p>
             ) : state.transactions.length === 0 ? (
@@ -376,7 +415,9 @@ export function PortfolioDashboard() {
             ) : (
               <div className="table-scroll">
                 <table>
-                  <caption>Historial del ledger, más reciente primero</caption>
+                  <caption>
+                    Historial de movimientos, más reciente primero
+                  </caption>
                   <thead>
                     <tr>
                       <th>Fecha</th>

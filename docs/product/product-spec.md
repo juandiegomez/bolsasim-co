@@ -53,6 +53,15 @@ individuales. No elimina movimientos ni habilita ventas: conserva el historial
 para explicar el ejercicio y reconstruye las proyecciones excluyendo compras
 anuladas. Ver ADR-0010 y Slice 5.
 
+### EDU-001 — Entender cada paso
+
+La interfaz debe explicar en lenguaje sencillo los datos de mercado,
+previsualización y portafolio sin ocultar la metadata técnica. La explicación
+debe estar junto al dato, ser ampliable con teclado y no depender de hover.
+Como mínimo debe aclarar fecha del cierre, moneda, base de precio, fuente y
+modo demo/real, cantidad, débito, remanente, métricas del portafolio y dónde
+consultar o deshacer una compra.
+
 ## User journeys
 
 ### J1 — Consultar portafolio

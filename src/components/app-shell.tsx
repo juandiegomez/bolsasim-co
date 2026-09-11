@@ -12,6 +12,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           BolsaSim CO
         </Link>
         <nav aria-label="Navegación principal">
+          <Link href="/">Mi portafolio</Link>
           <Link href="/instruments">Explorar</Link>
           <Link href="/simulator">Simulación histórica</Link>
         </nav>

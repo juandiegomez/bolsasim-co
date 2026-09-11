@@ -151,6 +151,14 @@ export function InstrumentExplorer() {
           )}
         </>
       )}
+      <details className="learning-note">
+        <summary>¿Cómo leer esta lista?</summary>
+        <p>
+          <strong>demo</strong> identifica datos preparados para aprender. El
+          estado <strong>ACTIVE</strong> indica que la acción puede usarse en
+          una compra simulada. La moneda COP significa pesos colombianos.
+        </p>
+      </details>
       <p className="muted">
         Datos etiquetados <span className="badge">demo</span> provienen de
         fixtures del simulador y nunca representan precios reales.
