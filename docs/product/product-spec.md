@@ -3,10 +3,36 @@
 **Estado:** aprobado para Fase 0  
 **Audiencia:** producto, ingeniería, QA y agentes de IA  
 **Zona horaria de presentación:** `America/Bogota`
+**Decisión de alcance vigente:** [ADR-0013](../adr/0013-mvp-equity-free-universe.md)
+
+## Decisión de alcance de activos — Slice 6
+
+El MVP y el Slice 6 se mantienen deliberadamente limitados al tipo de
+instrumento `EQUITY`, pero ya no son exclusivos de Colombia. El universo
+operable lo determina la cobertura gratuita realmente accesible del proveedor
+validado, sin asumir un país, exchange o MIC concreto.
+
+Cada portafolio utiliza una única moneda de liquidación explícita. El perfil
+COP y el depósito inicial de COP 10.000.000 siguen siendo el valor
+predeterminado por compatibilidad; una moneda distinta requiere un perfil y
+configuración compatibles. No se mezclan monedas ni se hace conversión FX.
+
+La lista de tipos extensibles del modelo no habilita otros activos en la
+experiencia ni en las operaciones actuales. `ETF`, renta fija, fondos, índices,
+pares FX, crypto, dividendos, splits y otros eventos corporativos requieren
+requirements y decisiones propias antes de incorporarse.
+
+La disponibilidad gratuita se valida por instrumento y serie EOD, no solo por
+la presencia del símbolo en un catálogo. La evaluación de Twelve Data se
+registra en [ADR-0005](../adr/0005-market-data-source.md); `ECO:BVC` es
+evidencia parcial y la muestra de aceptación puede provenir de cualquier
+mercado que cumpla el perfil elegido.
 
 ## Problema y usuario objetivo
 
-Quien aprende sobre inversiones en Colombia carece de una experiencia sencilla donde pueda practicar con capital ficticio y entender el efecto histórico de una compra sin conectar una cuenta de corretaje ni arriesgar dinero.
+Quien aprende sobre inversiones carece de una experiencia sencilla donde pueda
+practicar con capital ficticio y entender el efecto histórico de una compra sin
+conectar una cuenta de corretaje ni arriesgar dinero.
 
 El usuario principal es un estudiante o persona interesada en explorar inversiones. Usa una demo local, individual y sin login. El actor operativo es el desarrollador que configura la aplicación y carga una fuente de mercado real validada.
 
@@ -14,8 +40,10 @@ El usuario principal es un estudiante o persona interesada en explorar inversion
 
 El MVP debe permitir completar, sin ayuda externa, estos recorridos:
 
-1. consultar un portafolio inicial de COP 10.000.000;
-2. encontrar una acción colombiana y entender la fecha y procedencia de su precio;
+1. consultar un portafolio inicial en su moneda configurada (COP
+   10.000.000 por defecto);
+2. encontrar una acción `EQUITY` del universo gratuito soportado y entender la
+   fecha, mercado, moneda y procedencia de su precio;
 3. previsualizar y confirmar una compra simulada, observando el saldo y posición resultantes;
 4. calcular el resultado histórico de una inversión y entender sus supuestos.
 
@@ -32,18 +60,28 @@ Estas métricas son criterios técnicos iniciales, no objetivos comerciales aún
 ## Alcance
 
 - Usuario local único, portafolio único y depósito inicial idempotente.
-- Efectivo y acciones `Equity` denominadas en COP.
+- Efectivo y acciones `Equity` del universo gratuito validado, con moneda
+  explícita y compatible con la moneda de liquidación del portafolio; no se
+  habilitan otros tipos de instrumento en el MVP.
+- No se impone exclusividad geográfica, pero un portafolio no mezcla monedas ni
+  convierte divisas automáticamente.
 - Búsqueda, listado, detalle, último cierre e histórico diario de instrumentos soportados.
 - Compra simulada por monto, con fracciones de hasta ocho decimales.
 - Ledger de `INITIAL_DEPOSIT` y `BUY`; `SELL` solo reservado conceptualmente.
 - Dashboard con efectivo, inversión, valor total, P&L, rentabilidad, evolución, posiciones y movimientos.
 - Simulación histórica independiente del portafolio.
 - Datos reales gratuitos mediante API o archivo validado; mocks visibles para desarrollo y CI.
-- Fees configurables en arquitectura y fijados en COP 0 para el MVP.
+- Fees configurables en arquitectura y fijados en cero para el MVP, en la
+  moneda de liquidación del portafolio.
 
 ## No objetivos
 
-Dinero real, depósitos o retiros bancarios, brokers, ventas, short selling, margen, FX, instrumentos distintos de acciones, dividendos acreditados, ajustes automáticos por eventos corporativos, autenticación, despliegue público, recomendaciones personalizadas, trading intradía, estrategias, indicadores avanzados, rebalanceo, optimización, Monte Carlo y derivados.
+Dinero real, depósitos o retiros bancarios, brokers, ventas, short selling,
+margen, FX, crypto, ETFs, renta fija, fondos, índices, instrumentos distintos
+de acciones, dividendos acreditados, splits, ajustes automáticos por eventos
+corporativos, autenticación, despliegue público, recomendaciones
+personalizadas, trading intradía, estrategias, indicadores avanzados,
+rebalanceo, optimización, Monte Carlo y derivados.
 
 ### Extensión pedagógica planificada
 
@@ -78,12 +116,18 @@ El usuario elige instrumento, monto, fecha inicial y fecha final opcional. El in
 
 ## Reglas de negocio
 
-- **PORT-001:** el depósito inicial de COP 10.000.000 ocurre una sola vez por portafolio.
+- **PORT-001:** el depósito inicial ocurre una sola vez por portafolio, en su
+  moneda de liquidación; el perfil predeterminado usa COP 10.000.000.
 - **PORT-002:** el ledger es inmutable y autoritativo; efectivo y posiciones se derivan de él.
-- **PORT-003:** una compra requiere instrumento activo `Equity` en COP, monto positivo, precio válido, fondos suficientes, previsualización vigente e idempotencia. Validación y escritura son atómicas.
+- **PORT-003:** una compra requiere instrumento activo `Equity` del universo
+  validado, moneda igual a la de liquidación del portafolio, monto positivo,
+  precio válido, fondos suficientes, previsualización vigente e idempotencia.
+  Validación y escritura son atómicas y no hacen conversión FX.
 - **PORT-004:** una posición derivada informa cantidad, costo, precio fechado, valor y P&L; falta de precio produce estado incompleto.
 - **PORT-005:** la evolución reconstruye efectivo y posiciones por día, usa el último cierre conocido anterior o igual y revela la fecha arrastrada.
-- **INST-001:** todo instrumento tiene ID interno, símbolo, nombre, exchange, moneda, tipo y estado.
+- **INST-001:** todo instrumento tiene ID interno, símbolo, nombre, exchange,
+  moneda, tipo y estado; cualquier exchange es válido si pertenece al universo
+  gratuito validado y el tipo es `EQUITY`.
 - **HIST-001:** la simulación separa parámetros y resultado, no se persiste y declara procedencia y supuestos.
 - **HIST-002:** fecha inicial usa primera sesión posterior o igual; fecha final usa última sesión anterior o igual; sin final se usa la última disponible.
 - **HIST-003:** la serie usa una sola base de precio. No se afirma retorno total si dividendos y ajustes no están verificados.
@@ -92,6 +136,10 @@ El usuario elige instrumento, monto, fecha inicial y fecha final opcional. El in
 - **FIN-001:** dinero, precios y cantidades usan decimal exacto y moneda explícita.
 - **FIN-002:** cantidad se redondea hacia abajo a 8 decimales; dinero se liquida `ROUND_HALF_UP` a 2.
 - **FIN-003:** fees son cero y los resultados se etiquetan como retorno bruto.
+- **FIN-004:** cada portafolio declara una moneda de liquidación; las compras,
+  posiciones y totales deben usarla y una moneda diferente se rechaza sin FX.
+- **SCOPE-001:** el MVP admite `EQUITY` activa de cualquier mercado incluido en
+  el universo gratuito validado; no admite otros tipos de activo.
 - **MDATA-001:** todo precio incluye fuente, modo, fecha de sesión, moneda, timestamp de obtención y base.
 - **MDATA-002:** ausencia de datos genera error controlado; no se interpola ni se sustituye por cero o mock.
 - **UI-001:** cada experiencia soporta loading, vacío, error, éxito y datos incompletos aplicables.
@@ -101,9 +149,12 @@ El usuario elige instrumento, monto, fecha inicial y fecha final opcional. El in
 
 ## Requisitos funcionales y no funcionales
 
-Son funcionales `PORT-001` a `PORT-005`, `INST-001`, `HIST-001` a `HIST-003`, `MDATA-001`, `MDATA-002`, `UI-001` y `UI-002`: describen capacidades observables del portafolio, mercado, simulador e interfaz.
+Son funcionales `PORT-001` a `PORT-005`, `INST-001`, `HIST-001` a `HIST-003`,
+`MDATA-001`, `MDATA-002`, `SCOPE-001`, `UI-001` y `UI-002`: describen
+capacidades observables del portafolio, mercado, simulador e interfaz.
 
-Son reglas financieras transversales `FIN-001` a `FIN-003`. Son no funcionales `SEC-001`, `OBS-001`, `PERF-001` y `SDD-001`:
+Son reglas financieras transversales `FIN-001` a `FIN-004`. Son no funcionales
+`SEC-001`, `OBS-001`, `PERF-001` y `SDD-001`:
 
 - **PERF-001:** evitar consultas repetidas mediante caché de cinco minutos para últimos precios y 24 horas para históricos; paginar listados y no bloquear la UI durante I/O.
 - **SDD-001:** no iniciar producción de una feature sin Definition of Ready; todo cambio mantiene requisitos, contratos, ADRs, pruebas y comportamiento sincronizados.
@@ -114,18 +165,20 @@ Objetivos no funcionales adicionales: TypeScript estricto, dominio independiente
 
 | ID            | Evidencia esperada                                                                                                                       |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| PORT-001      | Inicializar dos veces deja un solo depósito y saldo COP 10.000.000.                                                                      |
+| PORT-001      | Inicializar dos veces deja un solo depósito en la moneda configurada; el perfil predeterminado conserva COP 10.000.000.                  |
 | PORT-002      | Reproducir transacciones en orden reconstruye exactamente saldo y posiciones.                                                            |
-| PORT-003      | Comprar COP 2.000.000 desde COP 10.000.000 deja COP 8.000.000 si la división es exacta; exceso y concurrencia no sobregiran.             |
+| PORT-003      | Comprar un monto en la moneda del portafolio deja el remanente exacto; exceso, moneda incompatible y concurrencia no sobregiran.         |
 | PORT-004      | Precio ausente produce valoración incompleta y un error categorizado, nunca `0`.                                                         |
 | PORT-005      | Cada punto revela fecha de valoración y distingue huecos sin precio anterior.                                                            |
-| INST-001      | Búsqueda y detalle devuelven metadata completa y solo acciones COP activas son operables.                                                |
+| INST-001      | Búsqueda y detalle devuelven metadata completa y solo acciones `EQUITY` activas del universo gratuito y moneda compatible son operables. |
 | HIST-001      | Ejecutar una simulación no crea transacciones.                                                                                           |
 | HIST-002      | Un fin de semana usa las sesiones efectivas según la regla direccional.                                                                  |
 | HIST-003      | COP 1.000.000 a precios 100 y 120 produce 10.000 unidades, COP 1.200.000 y 20%.                                                          |
 | PED-001       | Reiniciar archiva la práctica anterior, crea una nueva con COP 10.000.000 y conserva el escenario anterior como ejemplo de solo lectura. |
 | PED-002       | Deshacer una compra conserva ambos movimientos, restaura el snapshot actual y excluye la compra desde la fecha del `VOID_BUY`.           |
 | FIN-001/002   | Casos con decimales cumplen escala y redondeo sin `number` financiero.                                                                   |
+| FIN-004       | El portafolio expone o deriva una moneda de liquidación única; compras en otra moneda se rechazan sin conversión.                        |
+| SCOPE-001     | El catálogo operativo puede ser multi-mercado, pero solo contiene `EQUITY` gratuita validada; otros tipos quedan fuera.                  |
 | MDATA-001/002 | Respuestas muestran metadata; errores del proveedor no activan mocks silenciosamente.                                                    |
 | UI-001/002    | Los cinco estados y avisos son navegables por teclado y comprensibles sin depender del color.                                            |
 | SEC-001       | Alterar precio o saldo en cliente no altera el cálculo confirmado por servidor.                                                          |

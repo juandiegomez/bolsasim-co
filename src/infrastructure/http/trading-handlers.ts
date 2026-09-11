@@ -14,7 +14,12 @@ import { serializePortfolioSnapshot } from "./serialize-portfolio";
 const requestSchema = z
   .object({
     instrumentId: z.uuid(),
-    amount: z.object({ amount: z.string(), currency: z.literal("COP") }),
+    amount: z
+      .object({
+        amount: z.string(),
+        currency: z.string().regex(/^[A-Z]{3}$/),
+      })
+      .strict(),
   })
   .strict();
 

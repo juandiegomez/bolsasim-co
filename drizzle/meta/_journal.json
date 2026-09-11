@@ -29,6 +29,13 @@
       "when": 1789097196532,
       "tag": "0003_youthful_martin_li",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789156249445,
+      "tag": "0004_repair_ledger_sequence",
+      "breakpoints": true
     }
   ]
 }

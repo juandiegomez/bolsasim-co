@@ -25,4 +25,8 @@ Fecha: 2026-09-10. Requirements: HIST-001, HIST-002, HIST-003, FIN-001–003, MD
 
 ## Limitación conocida
 
-La evidencia usa el dataset determinista `demo`, etiquetado en todas las superficies. La selección y aprobación de una fuente real de cierres diarios continúa bloqueada por ADR-0005; no se presenta el dataset demo como mercado real.
+La evidencia automatizada de este slice usa el dataset determinista `demo`,
+etiquetado en todas las superficies; no presenta el dataset demo como mercado
+real. Desde el cierre del Slice 6, Twelve Data está aceptada para ingesta local
+educativa y existe una muestra real normalizada fuera de Git, verificada por
+`npm run market:verify`.

@@ -21,7 +21,7 @@ dependerán de hover, color ni conocimiento previo.
 Se explicarán como mínimo:
 
 - fecha y significado del último cierre;
-- moneda COP;
+- moneda del instrumento y del portafolio (COP es el perfil predeterminado);
 - base `UNADJUSTED_CLOSE` y sus límites;
 - fuente y modo `demo`/`real`;
 - cantidad, débito y remanente de una preview;

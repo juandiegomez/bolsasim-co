@@ -37,20 +37,37 @@ export function createCreateBuyPreview(dependencies: {
       const record = await dependencies.provider.getInstrument(
         input.instrumentId,
       );
+      if (input.amount.currency !== dependencies.initialDeposit.currency) {
+        throw new DomainError(
+          "CURRENCY_MISMATCH",
+          "El monto debe coincidir con la moneda de liquidación del portafolio.",
+        );
+      }
       if (
         record.instrument.type !== "EQUITY" ||
-        record.instrument.status !== "ACTIVE" ||
-        record.instrument.currency !== "COP"
+        record.instrument.status !== "ACTIVE"
       ) {
         throw new DomainError(
           "INSTRUMENT_NOT_TRADABLE",
           "El instrumento no es operable en el MVP.",
         );
       }
+      if (record.instrument.currency !== dependencies.initialDeposit.currency) {
+        throw new DomainError(
+          "CURRENCY_MISMATCH",
+          "La moneda del instrumento no coincide con la del portafolio.",
+        );
+      }
       const price = await dependencies.provider.getLatestPrice(
         input.instrumentId,
         "UNADJUSTED_CLOSE",
       );
+      if (price.currency !== record.instrument.currency) {
+        throw new DomainError(
+          "INVALID_PROVIDER_DATA",
+          "El precio no coincide con la moneda del instrumento.",
+        );
+      }
       const calculation = calculatePurchase(
         input.amount,
         UnitPrice.create(price.close, price.currency),

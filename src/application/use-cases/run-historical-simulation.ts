@@ -62,6 +62,21 @@ export function createRunHistoricalSimulation(dependencies: {
       const instrumentRecord = await dependencies.provider.getInstrument(
         input.instrumentId,
       );
+      if (
+        instrumentRecord.instrument.type !== "EQUITY" ||
+        instrumentRecord.instrument.status !== "ACTIVE"
+      ) {
+        throw new DomainError(
+          "INSTRUMENT_NOT_TRADABLE",
+          "El instrumento no es operable en el MVP.",
+        );
+      }
+      if (input.amount.currency !== instrumentRecord.instrument.currency) {
+        throw new DomainError(
+          "CURRENCY_MISMATCH",
+          "El monto debe coincidir con la moneda del instrumento.",
+        );
+      }
       const initialPrice = await dependencies.provider.getPriceOnDate(
         input.instrumentId,
         input.requestedStartDate as MarketDate,

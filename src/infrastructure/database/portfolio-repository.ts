@@ -14,7 +14,7 @@ import {
   type PortfolioId,
   type UserId,
 } from "@/domain/ids";
-import { Money, type Currency } from "@/domain/money";
+import { isCurrencyCode, Money, type Currency } from "@/domain/money";
 import { Quantity } from "@/domain/quantity";
 import { UnitPrice } from "@/domain/unit-price";
 import {
@@ -38,7 +38,7 @@ function corrupt(detail: string): DomainError {
 }
 
 function validateCurrency(value: string): Currency {
-  if (value !== "COP") throw corrupt(`moneda no soportada en el MVP: ${value}`);
+  if (!isCurrencyCode(value)) throw corrupt(`moneda inválida: ${value}`);
   return value;
 }
 

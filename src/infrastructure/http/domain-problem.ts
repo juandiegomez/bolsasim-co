@@ -61,6 +61,11 @@ const STATUS_BY_DOMAIN_CODE: Record<
     title: "Bad Request",
     message: "La escala enviada no es válida; no se redondea silenciosamente.",
   },
+  INVALID_CURRENCY: {
+    status: 400,
+    title: "Bad Request",
+    message: "La moneda enviada no usa un código ISO 4217 válido.",
+  },
   INVALID_QUERY: {
     status: 400,
     title: "Bad Request",
@@ -74,7 +79,7 @@ const STATUS_BY_DOMAIN_CODE: Record<
   CURRENCY_MISMATCH: {
     status: 400,
     title: "Bad Request",
-    message: "La moneda enviada no es soportada en el MVP.",
+    message: "La moneda no coincide con el perfil de la operación.",
   },
   UNSUPPORTED_PRICE_BASIS: {
     status: 400,

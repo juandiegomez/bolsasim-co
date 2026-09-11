@@ -73,9 +73,19 @@ Para un split conocido sin política implementada, la posición queda `CORPORATE
 
 La caché implementa el mismo puerto y envuelve al adapter seleccionado. TTL inicial: cinco minutos para último precio y 24 horas para históricos; archivos se invalidan por checksum. No hay Redis. Un fallo real nunca activa el adapter mock automáticamente.
 
-La fuente real autorizada es un bloqueo de aceptación: debe demostrar
-cobertura, cierres diarios, procedencia y permiso de uso. El modo demo sigue
-siendo el predeterminado; véanse el ADR-0005 y el plan del Slice 6.
+El alcance operativo actual es `EQUITY` activa con acceso gratuito validado,
+sin exclusividad de país, exchange o MIC. El `MarketDataProvider` conserva la
+moneda explícita de cada instrumento y cada portafolio opera con una única
+moneda de liquidación; el perfil COP es el predeterminado y no se hace
+conversión FX. El MVP no habilita FX, crypto, ETFs, renta fija, fondos, índices,
+dividendos ni eventos corporativos. Su incorporación requiere requirements,
+contrato, ADR y reglas financieras propias.
+
+Twelve Data está aceptada para la ingesta local educativa no comercial y no
+productiva, con cobertura, cierres diarios y base de precio documentados. La
+muestra real local ya conserva procedencia y checksum, y se verifica con
+`npm run market:verify`. El modo demo sigue siendo el predeterminado y los datos
+reales no se redistribuyen; véanse el ADR-0005 y el plan del Slice 6.
 
 ## API, seguridad y confianza
 
@@ -103,4 +113,8 @@ La migración de arranque prueba el runner y su journal técnico sin crear entid
 
 ## Decisiones relacionadas
 
-ADRs 0001 a 0009 bajo `docs/adr/`. Los ADRs aceptados no se cambian silenciosamente; se reemplazan con otro ADR cuando corresponda.
+Los ADRs relacionados están bajo `docs/adr/`, incluidos ADR-0005 (fuente de
+mercado), ADR-0008 (valoración), ADR-0010 (escenarios), ADR-0011
+(explicaciones) y ADR-0013 (universo gratuito de Equity). ADR-0012 conserva la
+decisión intermedia superseded. Los ADRs aceptados no se cambian
+silenciosamente; se reemplazan con otro ADR cuando corresponda.

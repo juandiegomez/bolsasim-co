@@ -5,7 +5,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BolsaSim CO",
-  description: "Simulador educativo de inversiones para Colombia.",
+  description:
+    "Simulador educativo de inversiones con acciones disponibles gratuitamente.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

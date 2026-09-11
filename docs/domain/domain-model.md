@@ -11,16 +11,16 @@
 
 ## Value objects
 
-| Tipo         | Contenido e invariantes                                                                         |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| `Currency`   | ISO 4217; el MVP opera `COP` como única moneda y el tipo de dominio la restringe a ese literal. |
-| `Money`      | decimal con moneda, escala máxima 2, magnitud dentro de `numeric(24,2)`.                        |
-| `Quantity`   | decimal positivo o cero, escala máxima 8.                                                       |
-| `UnitPrice`  | decimal estrictamente positivo, moneda y escala máxima 8.                                       |
-| `Percentage` | decimal; nullable cuando el denominador es cero.                                                |
-| `MarketDate` | fecha ISO `YYYY-MM-DD`, sin hora.                                                               |
-| `Instant`    | timestamp UTC de ejecución u obtención.                                                         |
-| IDs          | `UserId`, `PortfolioId`, `InstrumentId`, `TransactionId`, `PreviewId`; no intercambiables.      |
+| Tipo         | Contenido e invariantes                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `Currency`   | ISO 4217; cada portafolio declara una única moneda de liquidación y no se convierten ni mezclan monedas dentro de él. |
+| `Money`      | decimal con moneda, escala máxima 2, magnitud dentro de `numeric(24,2)`.                                              |
+| `Quantity`   | decimal positivo o cero, escala máxima 8.                                                                             |
+| `UnitPrice`  | decimal estrictamente positivo, moneda y escala máxima 8.                                                             |
+| `Percentage` | decimal; nullable cuando el denominador es cero.                                                                      |
+| `MarketDate` | fecha ISO `YYYY-MM-DD`, sin hora.                                                                                     |
+| `Instant`    | timestamp UTC de ejecución u obtención.                                                                               |
+| IDs          | `UserId`, `PortfolioId`, `InstrumentId`, `TransactionId`, `PreviewId`; no intercambiables.                            |
 
 Reglas: cálculos con 50 dígitos significativos; cantidad `ROUND_DOWN` a ocho decimales; dinero `ROUND_HALF_UP` a dos. En HTTP se serializan como strings. No se acepta una entrada con escala excesiva: no se redondea silenciosamente.
 
@@ -32,11 +32,16 @@ Identidad propietaria. En el MVP existe un usuario local fijo detrás de `Curren
 
 ### Portfolio (aggregate root)
 
-Tiene ID, owner, moneda base COP, timestamps y movimientos. Invariantes:
+Tiene ID, owner, moneda base configurada, timestamps y movimientos. El perfil
+predeterminado usa COP, pero la moneda no fija el país o exchange del
+instrumento. Invariantes:
 
-- exactamente un `INITIAL_DEPOSIT` de COP 10.000.000;
+- exactamente un `INITIAL_DEPOSIT` en la moneda base (COP 10.000.000 en el
+  perfil predeterminado);
 - ninguna secuencia válida deja efectivo negativo;
-- solo acepta compras de instrumentos activos `Equity` en COP;
+- solo acepta compras de instrumentos activos `Equity` cuya moneda coincide con
+  la moneda base;
+- no realiza conversión FX ni permite posiciones de monedas mezcladas;
 - los movimientos existentes nunca se editan o eliminan;
 - la confirmación idempotente no agrega movimientos duplicados.
 
@@ -50,7 +55,15 @@ cash = Σ INITIAL_DEPOSIT.grossAmount − Σ effective(BUY.grossAmount + BUY.fee
 
 ### Instrument
 
-Entidad de referencia: `id`, `symbol`, `name`, `exchange`, `currency`, `type`, `status`. Tipos extensibles: `EQUITY`, `ETF`, `FIXED_INCOME`, `FUND`, `INDEX`, `CURRENCY`; solo `EQUITY` se implementa. Estado: `ACTIVE`, `INACTIVE`, `UNAVAILABLE`. Símbolo no funciona como identidad global.
+Entidad de referencia: `id`, `symbol`, `name`, `exchange`, `currency`, `type`,
+`status`. El modelo conserva tipos extensibles (`EQUITY`, `ETF`,
+`FIXED_INCOME`, `FUND`, `INDEX`, `CURRENCY`) para futuras decisiones; en el
+MVP/Slice 6 solo `EQUITY` se implementa y es operable. El universo puede ser
+multi-mercado si el proveedor ofrece los instrumentos sin plan pagado y la
+fuente está validada. Estado: `ACTIVE`, `INACTIVE`, `UNAVAILABLE`. Símbolo no
+funciona como identidad global: exchange/MIC forman parte de la identidad de
+referencia. FX, crypto, dividendos y eventos corporativos no forman parte de la
+semántica actual del aggregate.
 
 ### Transaction
 

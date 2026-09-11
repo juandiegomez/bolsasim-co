@@ -52,6 +52,9 @@
 ## Límites y pendientes
 
 - `CORPORATE_ACTION_UNSUPPORTED` permanece reservado (no hay splits en el dataset demo).
-- `GET /portfolio/positions` (ruta dedicada del contrato) queda pendiente de implementación; las posiciones hoy se exponen en el snapshot `/portfolio`.
-- La evidencia `verified` de PORT-004/005 y SEC-001 es parcial: agregación multi-BUY en E2E, serie completa con dataset real y test de manipulación de datos almacenados llegan con el dataset real (ADR-0005) y el Slice 4.
+- En el momento de este slice, `GET /portfolio/positions` (ruta dedicada del contrato) quedaba pendiente de implementación; fue completada en el Slice 6B y ahora reutiliza el snapshot `/portfolio`.
+- La evidencia `verified` de PORT-004/005 y SEC-001 es parcial: agregación
+  multi-BUY en E2E, serie completa con dataset real y test de manipulación de
+  datos almacenados se completan por los slices posteriores y el dataset local
+  de ADR-0005; este reporte conserva la fecha de validación original.
 - Los valores de la evolución con la cobertura demo terminan en `2026-08-28`: los días posteriores se muestran incompletos con el arrastre visible, nunca como cero.

@@ -2,7 +2,7 @@
 
 ## Propósito y estado
 
-BolsaSim CO es un simulador educativo de inversiones con capital ficticio, inicialmente enfocado en acciones colombianas. La baseline de Fase 0 está aprobada y el Slice 0 materializa el shell, liveness, configuración, PostgreSQL/Drizzle, decimal.js y tooling. Las funcionalidades de producto siguen pendientes.
+BolsaSim CO es un simulador educativo de inversiones con capital ficticio, inicialmente enfocado en acciones colombianas. El MVP vigente admite únicamente instrumentos `EQUITY` activos disponibles gratuitamente en mercados validados, sin exclusividad geográfica; la baseline de Fase 0 está aprobada y el Slice 0 materializa el shell, liveness, configuración, PostgreSQL/Drizzle, decimal.js y tooling. Las funcionalidades de producto siguen pendientes.
 
 La fuente de verdad es, en orden: requirements aprobados y trazados, contratos publicados, ADRs aceptados, tests que verifican esos contratos y, finalmente, implementación. Ante una contradicción, detén el cambio, registra el conflicto y corrige o somete a aprobación la especificación; no elijas silenciosamente.
 
@@ -49,7 +49,7 @@ No importes Next.js, Drizzle, Zod HTTP ni proveedores desde el dominio. No hagas
 ## Reglas no negociables
 
 - Dinero y cantidades usan decimales exactos; nunca `number`, `float` o `double` para cálculos o persistencia financiera.
-- Toda cantidad monetaria tiene moneda explícita. El MVP solo permite compras de instrumentos denominados en COP.
+- Toda cantidad monetaria tiene moneda explícita. El MVP solo permite compras de `EQUITY` activas del universo gratuito validado y compatibles con la única moneda de liquidación del portafolio. COP y COP 10.000.000 son el perfil predeterminado actual; no hay exclusividad geográfica ni conversión FX.
 - El ledger es inmutable y autoritativo. Saldo y posiciones son proyecciones reconstruibles.
 - Una ausencia de mercado es un error explícito, nunca precio cero.
 - Los mocks y fixtures muestran la etiqueta `demo`; nunca se presentan como datos reales.
@@ -82,6 +82,8 @@ npm run test:e2e
 npm run build
 npm run db:check
 npm run db:migrate
+npm run market:ingest
+npm run market:verify
 npm run dev
 ```
 
@@ -92,3 +94,13 @@ Lee [ADR-0009](docs/adr/0009-slice-zero-foundation.md) y [la evidencia del Slice
 ## Criterio de terminado
 
 Un cambio requiere implementación tipada, validación en servidor, errores modelados, estados UI aplicables, tests significativos, documentación sincronizada, format, lint, typecheck, tests y build aprobados, y criterios verificados sin regresiones conocidas. No borres o debilites pruebas para aprobar CI.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

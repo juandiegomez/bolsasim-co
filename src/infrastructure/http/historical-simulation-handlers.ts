@@ -13,7 +13,10 @@ const requestSchema = z
   .object({
     instrumentId: z.uuid(),
     amount: z
-      .object({ amount: z.string(), currency: z.literal("COP") })
+      .object({
+        amount: z.string(),
+        currency: z.string().regex(/^[A-Z]{3}$/),
+      })
       .strict(),
     requestedStartDate: z.string(),
     requestedEndDate: z.string().nullable().optional(),

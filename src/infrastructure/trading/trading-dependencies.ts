@@ -3,9 +3,9 @@ import { createCreateBuyPreview } from "@/application/use-cases/create-buy-previ
 import { createConfirmBuyPreview } from "@/application/use-cases/confirm-buy-preview";
 import { createGetPortfolioSnapshot } from "@/application/use-cases/get-portfolio-snapshot";
 import { asPreviewId, asTransactionId, asUserId } from "@/domain/ids";
-import { Money } from "@/domain/money";
 import { createSystemClock } from "@/infrastructure/clock/system-clock";
 import { getEnvironment } from "@/infrastructure/config/env";
+import { getConfiguredInitialDeposit } from "@/infrastructure/config/portfolio-profile";
 import { createDrizzleBuyPreviewRepository } from "@/infrastructure/database/buy-preview-repository";
 import { getApplicationDatabase } from "@/infrastructure/database/singleton";
 import { createDrizzlePortfolioRepository } from "@/infrastructure/database/portfolio-repository";
@@ -22,11 +22,12 @@ export async function createDefaultTradingRouteDependencies() {
   const currentUser = createLocalUserProvider(
     asUserId(environment.DEMO_USER_ID),
   );
-  const initialDeposit = Money.create(environment.INITIAL_DEPOSIT_COP, "COP");
+  const initialDeposit = getConfiguredInitialDeposit(environment);
+  const provider = await getMarketDataProvider();
   const preview = createCreateBuyPreview({
     repository: portfolios,
     previews,
-    provider: await getMarketDataProvider(),
+    provider,
     currentUser,
     clock,
     initialDeposit,
@@ -44,6 +45,7 @@ export async function createDefaultTradingRouteDependencies() {
     currentUser,
     clock,
     initialDeposit,
+    provider,
   });
   return {
     useCases: { preview, confirm, snapshot },

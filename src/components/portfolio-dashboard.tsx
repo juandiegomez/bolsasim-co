@@ -10,6 +10,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  financialTone,
+  financialToneLabel,
+  formatVisiblePercentage,
+} from "./financial-tone";
 
 interface MoneyDTO {
   amount: string;
@@ -22,7 +27,7 @@ interface PositionDTO {
   cost: MoneyDTO;
   valuationStatus:
     "VALUED" | "PRICE_UNAVAILABLE" | "CORPORATE_ACTION_UNSUPPORTED";
-  price: { close: string; sessionDate: string } | null;
+  price: { close: string; currency: string; sessionDate: string } | null;
   marketValue: MoneyDTO | null;
   pnl: MoneyDTO | null;
   returnPct: string | null;
@@ -88,21 +93,33 @@ const movementsWarning =
 const evolutionWarning =
   "La evolución diaria no está disponible en este momento; el resto del portafolio se muestra con la última información disponible.";
 
-const INITIAL_DEPOSIT_COP = "10000000.00";
-
 // Exact string formatting; the dashboard never computes money as a number.
-function formatCop(amount: string): string {
+function formatAmount(amount: string): string {
   const negative = amount.startsWith("-");
   const [whole = "0", decimals = ""] = amount.replace("-", "").split(".");
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${negative ? "-" : ""}$ ${grouped},${decimals.padEnd(2, "0")}`;
 }
 
-function metric(label: string, value: MoneyDTO | null) {
+function formatMoney(money: MoneyDTO): string {
+  return `${formatAmount(money.amount)} ${money.currency}`;
+}
+
+function metric(
+  label: string,
+  value: MoneyDTO | null,
+  tone: ReturnType<typeof financialTone> = "neutral",
+  supportingText?: string,
+) {
   return (
-    <div>
+    <div className={`metric-card trend-${tone}`}>
       <dt>{label}</dt>
-      <dd>{value ? formatCop(value.amount) : "Valoración incompleta"}</dd>
+      <dd className="metric-value">
+        {value ? formatMoney(value) : "Valoración incompleta"}
+        {supportingText && (
+          <span className="metric-support">{supportingText}</span>
+        )}
+      </dd>
     </div>
   );
 }
@@ -178,6 +195,20 @@ async function requestInitializationState(): Promise<DashboardState> {
 
 export function PortfolioDashboard() {
   const [state, setState] = useState<DashboardState>({ status: "loading" });
+  const snapshotPnlTone =
+    state.status === "ready"
+      ? financialTone(state.snapshot.pnl?.amount)
+      : "neutral";
+  const snapshotPnlSupport =
+    state.status === "ready" && state.snapshot.pnl
+      ? `${financialToneLabel(snapshotPnlTone)}${formatVisiblePercentage(state.snapshot.returnPct, state.snapshot.pnl.amount) ? ` · ${formatVisiblePercentage(state.snapshot.returnPct, state.snapshot.pnl.amount)}` : ""}`
+      : undefined;
+  const chartStroke =
+    snapshotPnlTone === "positive"
+      ? "#147a44"
+      : snapshotPnlTone === "negative"
+        ? "#b42318"
+        : "#145d50";
 
   const refresh = useCallback(() => {
     void queryPortfolioState().then((next) => setState(next));
@@ -252,8 +283,7 @@ export function PortfolioDashboard() {
         <>
           <p>
             Este simulador usa capital ficticio. Al iniciar se creará tu
-            portafolio con un depósito inicial de{" "}
-            {formatCop(INITIAL_DEPOSIT_COP)}.
+            portafolio con el depósito inicial configurado.
           </p>
           <button className="action" type="button" onClick={start}>
             Iniciar simulación
@@ -263,15 +293,20 @@ export function PortfolioDashboard() {
       {state.status === "ready" && (
         <>
           <dl className="portfolio-metrics">
-            <div>
+            <div className="metric-card">
               <dt>Efectivo disponible</dt>
               <dd className="metric-value" data-testid="available-cash">
-                {formatCop(state.snapshot.cash.amount)}
+                {formatMoney(state.snapshot.cash)}
               </dd>
             </div>
             {metric("Costo invertido", state.snapshot.investedCost)}
             {metric("Valor total", state.snapshot.totalValue)}
-            {metric("P&L", state.snapshot.pnl)}
+            {metric(
+              "P&L",
+              state.snapshot.pnl,
+              snapshotPnlTone,
+              snapshotPnlSupport,
+            )}
           </dl>
           <details className="learning-note portfolio-guide">
             <summary>¿Cómo leer tu portafolio?</summary>
@@ -375,20 +410,25 @@ export function PortfolioDashboard() {
                         </span>
                       </th>
                       <td>{position.quantity}</td>
-                      <td>{formatCop(position.cost.amount)}</td>
+                      <td>{formatMoney(position.cost)}</td>
                       <td>
                         {position.price
-                          ? `${formatCop(position.price.close)} (${position.price.sessionDate})`
+                          ? `${formatMoney({
+                              amount: position.price.close,
+                              currency: position.price.currency,
+                            })} (${position.price.sessionDate})`
                           : "No disponible"}
                       </td>
                       <td>
                         {position.marketValue
-                          ? formatCop(position.marketValue.amount)
+                          ? formatMoney(position.marketValue)
                           : "Incompleta"}
                       </td>
-                      <td>
+                      <td
+                        className={`financial-result-cell trend-${financialTone(position.pnl?.amount)}`}
+                      >
                         {position.pnl
-                          ? `${formatCop(position.pnl.amount)} (${position.returnPct ?? "—"}%)`
+                          ? `${formatMoney(position.pnl)} (${financialToneLabel(financialTone(position.pnl.amount))}${formatVisiblePercentage(position.returnPct, position.pnl.amount) ? ` · ${formatVisiblePercentage(position.returnPct, position.pnl.amount)}` : ""})`
                           : "Incompleto"}
                       </td>
                     </tr>
@@ -442,7 +482,7 @@ export function PortfolioDashboard() {
                               : "Capital inicial"}
                         </th>
                         <td>
-                          {formatCop(transaction.grossAmount.amount)}
+                          {formatMoney(transaction.grossAmount)}
                           {transaction.type === "BUY" && (
                             <button
                               className="text-action"
@@ -468,10 +508,23 @@ export function PortfolioDashboard() {
               className="portfolio-evolution"
               aria-labelledby="evolution-title"
             >
-              <h2 id="evolution-title">Evolución del portafolio</h2>
-              <p>
-                Valor diario usando el último cierre disponible. Un dato
-                incompleto nunca se representa como cero.
+              <div className="chart-heading">
+                <div>
+                  <h2 id="evolution-title">Evolución del portafolio</h2>
+                  <p>
+                    Valor diario usando el último cierre disponible. Un dato
+                    incompleto nunca se representa como cero.
+                  </p>
+                </div>
+                <span className={`trend-badge trend-${snapshotPnlTone}`}>
+                  {state.snapshot.pnl
+                    ? financialToneLabel(snapshotPnlTone)
+                    : "Valoración incompleta"}
+                </span>
+              </div>
+              <p className="chart-key">
+                El color resume el resultado actual y el texto confirma si es
+                ganancia, pérdida o valoración incompleta.
               </p>
               <div
                 className="chart"
@@ -491,13 +544,19 @@ export function PortfolioDashboard() {
                     <YAxis domain={["auto", "auto"]} />
                     <Tooltip
                       formatter={(value) =>
-                        value === null ? "Incompleto" : formatCop(String(value))
+                        value === null
+                          ? "Incompleto"
+                          : formatMoney({
+                              amount: String(value),
+                              currency: state.snapshot.cash.currency,
+                            })
                       }
                     />
                     <Line
                       type="monotone"
                       dataKey="total"
-                      stroke="#145d50"
+                      stroke={chartStroke}
+                      strokeWidth={2.5}
                       dot={false}
                       connectNulls={false}
                       isAnimationActive={false}
@@ -520,10 +579,10 @@ export function PortfolioDashboard() {
                     {state.evolution.map((point) => (
                       <tr key={point.date}>
                         <td>{point.date}</td>
-                        <td>{formatCop(point.cash.amount)}</td>
+                        <td>{formatMoney(point.cash)}</td>
                         <td>
                           {point.totalValue
-                            ? formatCop(point.totalValue.amount)
+                            ? formatMoney(point.totalValue)
                             : "Incompleto"}
                         </td>
                         <td>

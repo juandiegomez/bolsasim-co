@@ -30,7 +30,7 @@ Las versiones se decidirán al crear infraestructura y se fijarán en lockfile.
 | Sin datos MDATA-002           | ninguna observación válida                                       | error controlado; nunca precio 0                    |
 | Fracción FIN-002              | división periódica                                               | floor a 8; dinero half-up a 2; remanente preservado |
 | Escala FIN-002                | dinero con 3 decimales                                           | rechazo, no redondeo silencioso                     |
-| Moneda INST-001               | instrumento USD                                                  | no operable y simulación rechazada en MVP           |
+| Moneda INST-001/FIN-004       | instrumento en moneda distinta al perfil del portafolio          | no operable y operación rechazada sin conversión FX |
 
 ## Unitarias
 
@@ -55,7 +55,7 @@ No sustituir PostgreSQL por una base en memoria para pruebas de semántica trans
 
 ## Contrato de mercado
 
-Todos los adapters verifican orden, unicidad, positividad, moneda, base, coverage, metadata y ambas reglas de fecha. El adapter real añade un smoke opt-in que valida disponibilidad y muestra, sin convertir su inestabilidad en fallo del CI determinista. Un dataset real versionado se prueba por checksum y manifiesto.
+Todos los adapters verifican orden, unicidad, positividad, moneda, base, coverage, metadata y ambas reglas de fecha. El adapter real añade el smoke local opt-in `npm run market:verify`, que valida disponibilidad de la muestra y el dataset normalizado sin convertir la inestabilidad externa en fallo del CI determinista. Un dataset real local se prueba por checksum y manifiesto; no se versiona ni se redistribuye.
 
 ## E2E y accesibilidad
 
@@ -68,11 +68,11 @@ Todos los adapters verifican orden, unicidad, positividad, moneda, base, coverag
 
 ## Fixtures
 
-Ubicación prevista: `tests/fixtures/market/`. Cada conjunto incluye `manifest.json`, observaciones y README. Fechas y valores son inventados y etiquetados `demo`. El fixture canónico incluye precios 100 y 120, un fin de semana entre ellos, un hueco anterior a cobertura y un instrumento USD no operable.
+Ubicación prevista: `tests/fixtures/market/`. Cada conjunto incluye `manifest.json`, observaciones y README. Fechas y valores son inventados y etiquetados `demo`. El fixture canónico incluye precios 100 y 120, un fin de semana entre ellos, un hueco anterior a cobertura y un instrumento USD para probar incompatibilidad con el perfil COP predeterminado.
 
 ## Gates y CI
 
-Slice 0 materializa instalación con lockfile, format check, lint (incluido OpenAPI), typecheck, PostgreSQL/migraciones, unitarias, integración, contrato, build y E2E sobre producción en `.github/workflows/ci.yml`. Un fallo bloquea Done; no se eliminan tests, assertions o validaciones para obtener verde. La baseline de Fase 0 era documental; los casos financieros de slices siguientes permanecen pendientes.
+Slice 0 materializa instalación con lockfile, format check, lint (incluido OpenAPI), typecheck, PostgreSQL/migraciones, unitarias, integración, contrato, build y E2E sobre producción en `.github/workflows/ci.yml`. Un fallo bloquea Done; no se eliminan tests, assertions o validaciones para obtener verde. La baseline de Fase 0 era documental; la evidencia consolidada de los Slices 1–6 está en sus reportes de validación y en el acta de cierre del MVP.
 
 Los tests actuales viven en `tests/unit`, `tests/integration`, `tests/contract` y `tests/e2e`. El contrato health se valida con los schemas OpenAPI mediante Ajv; no se duplican schemas en tests. Integración exige TEST_DATABASE_URL dedicada, nunca usa fallback. Vitest separa proyectos y falla cuando falta la base. E2E prueba el servidor Next.js compilado y no reutiliza servidores del usuario.
 

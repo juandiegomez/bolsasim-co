@@ -27,7 +27,10 @@
     "db:check": "tsx scripts/database.ts check",
     "db:migrate": "tsx scripts/database.ts migrate",
     "db:create": "tsx scripts/database.ts create",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "market:ingest": "tsx scripts/ingest-twelve-data.ts",
+    "market:verify": "tsx scripts/verify-market-dataset.ts",
+    "demo:start": "tsx scripts/start-demo.ts"
   },
   "dependencies": {
     "@next/env": "16.3.4",

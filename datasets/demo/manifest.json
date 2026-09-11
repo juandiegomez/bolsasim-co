@@ -15,7 +15,8 @@
     "prices.json": "3c033719474fb897de70ac1149043a8833c5721e6b44bb4f93cdc34e42bd6e29"
   },
   "timezone": "America/Bogota",
-  "currency": "COP",
+  "currency": null,
+  "currencies": ["COP", "USD"],
   "frequency": "daily",
   "priceDefinition": {
     "field": "close",
@@ -28,6 +29,6 @@
   "limitations": [
     "Datos ficticios etiquetados demo; nunca presentados como reales.",
     "La sesión 2026-08-12 se omitió a propósito para modelar un hueco interno.",
-    "DEMOUSD opera en USD y no es operable en el MVP."
+    "DEMOUSD opera en USD; solo es operable cuando el perfil del portafolio liquida en USD."
   ]
 }

@@ -4,6 +4,31 @@
 
 > **Cierre Slice 5 (2026-09-11):** PED-001 y PED-002 quedan implementados y verificados. La evidencia automatizada está en [slice-five-validation.md](../testing/slice-five-validation.md). Esta nota prevalece sobre las filas históricas de la tabla base.
 
+> **Cierre Slice 6B (2026-09-11):** la ruta dedicada de posiciones, su
+> serialización compartida y la evidencia contra ausencia de mercado y datos
+> persistidos corruptos quedan implementadas y verificadas. Slice 6A ya cuenta
+> con una muestra técnica global de tres Equity USD (`AAPL`, `MSFT`, `KO`) y
+> `adjust=none`. Para la demo educativa local, `datasets/real` ya fue generado y
+> verificado con checksums; la redistribución o exhibición comercial requiere
+> otra autorización. Ver [slice-six-validation.md](../testing/slice-six-validation.md).
+
+> **Cambio de alcance de activos (2026-09-11):** el MVP y el Slice 6 quedan
+> limitados al tipo `EQUITY`, pero dejan de ser exclusivos de Colombia. El
+> universo elegible es el conjunto de Equity activa con acceso gratuito
+> validado; cada portafolio conserva una única moneda de liquidación y no hace
+> FX. ETFs, renta fija, fondos, índices, crypto, dividendos y eventos
+> corporativos permanecen fuera del alcance. La decisión vigente está en
+> [ADR-0013](../adr/0013-mvp-equity-free-universe.md); ADR-0012 queda como
+> antecedente superado.
+
+> **Estado de cierre del MVP (2026-09-11):** el alcance funcional de los Slices
+> 0–6 está listo y verificado para la demo educativa local. Las filas con
+> `partial` que permanecen en la matriz representan objetivos transversales
+> deliberadamente incompletos —por ejemplo, accesibilidad automatizada
+> exhaustiva, observabilidad integral y política futura de PRs—, no una
+> funcionalidad de inversión pendiente. La evidencia consolidada y los límites
+> aceptados están en [mvp-closure.md](../delivery/mvp-closure.md).
+
 Los estados son independientes: `specified` indica contrato documental; `implemented`, código existente; `verified`, evidencia automatizada aprobada. `partial` no acredita el requirement completo. La baseline de Fase 0 tenía únicamente specified=yes; Slice 0 añade evidencia fundacional sin cambiar criterios financieros.
 
 | ID        | Resumen                          | Especificación                           | Contrato                      | Prueba prevista          | Specified | Implemented | Verified |
@@ -11,20 +36,22 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 | PORT-001  | Depósito inicial único           | Product § Reglas; Domain § Aggregate     | API `/portfolios/initialize`  | unit + integration       | yes       | yes         | yes      |
 | PORT-002  | Ledger inmutable y reconstruible | Domain § Transaction                     | repositorio de ledger         | unit + integration       | yes       | yes         | yes      |
 | PORT-003  | Compra atómica e idempotente     | Product § J2; Domain § Buy               | API previews/confirm          | unit + concurrency + E2E | yes       | yes         | yes      |
-| PORT-004  | Posición y valoración incompleta | Domain § Projections                     | API positions                 | unit + integration + UI  | yes       | yes         | partial  |
+| PORT-004  | Posición y valoración incompleta | Domain § Projections                     | API positions                 | unit + integration + UI  | yes       | yes         | yes      |
 | PORT-005  | Evolución fechada                | Product § J1                             | API evolution                 | unit + E2E               | yes       | yes         | partial  |
-| INST-001  | Instrumento abstracto            | Domain § Instrument                      | Market data + API instruments | contract + E2E           | yes       | yes         | partial  |
+| INST-001  | Instrumento abstracto            | Domain § Instrument                      | Market data + API instruments | contract + E2E           | yes       | yes         | yes      |
+| SCOPE-001 | Universo gratuito de Equity      | Product § Alcance; ADR-0013              | Market data + API instruments | contract + E2E           | yes       | yes         | yes      |
 | HIST-001  | Simulación sin efectos           | Product § J3; Domain § Service           | API simulations               | unit + integration       | yes       | yes         | yes      |
 | HIST-002  | Resolución de sesiones           | Data § Date resolution                   | Market data + API simulations | unit + contract          | yes       | yes         | yes      |
 | HIST-003  | Matemática histórica             | Domain § Historical simulation           | API simulations               | unit + E2E               | yes       | yes         | yes      |
 | FIN-001   | Decimal y moneda explícita       | Domain § Value objects; ADR-0004         | todos                         | static + unit + DB       | yes       | partial     | partial  |
 | FIN-002   | Escalas y redondeo               | Domain § Precision; ADR-0004             | esquemas decimales            | boundary unit tests      | yes       | yes         | yes      |
 | FIN-003   | Fees cero y retorno bruto        | Product § Reglas                         | buy/simulation                | unit + UI                | yes       | yes         | yes      |
+| FIN-004   | Moneda única por portafolio      | Product § Reglas; ADR-0013               | portfolio/trading             | unit + integration + E2E | yes       | yes         | yes      |
 | MDATA-001 | Metadata y procedencia           | Data § Responses                         | API market schemas            | adapter contract         | yes       | yes         | yes      |
 | MDATA-002 | Fallos explícitos                | Data § Errors                            | Problem response              | contract + UI            | yes       | yes         | partial  |
 | UI-001    | Estados completos                | Product § Experience                     | responses/errors              | component + E2E          | yes       | partial     | partial  |
 | UI-002    | Avisos y etiqueta demo           | Product § Disclaimer                     | market metadata               | accessibility + E2E      | yes       | partial     | partial  |
-| SEC-001   | Autoridad del servidor           | Architecture § Trust                     | API previews/confirm          | tampering integration    | yes       | yes         | partial  |
+| SEC-001   | Autoridad del servidor           | Architecture § Trust                     | API previews/confirm          | tampering integration    | yes       | yes         | yes      |
 | OBS-001   | Correlación y errores            | Architecture § Observability             | `X-Request-Id`, Problem       | integration              | yes       | partial     | partial  |
 | PERF-001  | Caché de mercado                 | ADR-0007                                 | MarketDataProvider wrapper    | unit + integration       | yes       | yes         | yes      |
 | SDD-001   | Specs antes de producción        | AGENTS.md                                | docs                          | review checklist         | yes       | partial     | partial  |
@@ -56,30 +83,30 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 
 ## Adición de Fase 1 — Slice 2
 
-**INST-001/MDATA-001/002/PERF-001 — Explorar y detalle:** puerto `MarketDataProvider` con las seis operaciones del contrato de datos de mercado y cursor opaco. Adapter de archivo único que sirve el dataset demo commiteado (`datasets/demo`, manifiesto con checksum SHA-256 por archivo, etiqueta demo) y está listo para datasets reales vía `MARKET_DATA_ADAPTER=file` (ADR-0005 sigue Proposed). Rutas `/instruments` (búsqueda/listado paginado), `/instruments/{id}` (metadata + `dataMode`), `/instruments/{id}/price` (último cierre con fecha/base/moneda) e `/instruments/{id}/history` (serie inclusiva validada). Caché en proceso con TTL 300 s/86 400 s y ventana negativa breve para fallos reintentables (ADR-0007). UI de exploración y detalle con Recharts y tabla accesible, cinco estados y avisos demo persistentes. Límites: simulación histórica (HIST-001–003) y compras (Slice 3) pendientes; `getPriceOnDate` implementado en el puerto sin ruta pública.
+**INST-001/MDATA-001/002/PERF-001 — Explorar y detalle:** puerto `MarketDataProvider` con las seis operaciones del contrato de datos de mercado y cursor opaco. Adapter de archivo único que sirve el dataset demo commiteado (`datasets/demo`, manifiesto con checksum SHA-256 por archivo, etiqueta demo) y está listo para datasets reales vía `MARKET_DATA_ADAPTER=file` según ADR-0005; los datos reales de Twelve Data se conservan localmente y no se redistribuyen. Rutas `/instruments` (búsqueda/listado paginado), `/instruments/{id}` (metadata + `dataMode`), `/instruments/{id}/price` (último cierre con fecha/base/moneda) e `/instruments/{id}/history` (serie inclusiva validada). Caché en proceso con TTL 300 s/86 400 s y ventana negativa breve para fallos reintentables (ADR-0007). UI de exploración y detalle con Recharts y tabla accesible, cinco estados y avisos demo persistentes. Límites: simulación histórica (HIST-001–003) y compras (Slice 3) pendientes; `getPriceOnDate` implementado en el puerto sin ruta pública.
 
-| ID        | Implemented | Verified | Evidencia y límite                                                                                                                                                                    |
-| --------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| INST-001  | yes         | partial  | `tests/unit/market-dataset.test.ts`, `tests/contract/market-http.test.ts`, `tests/e2e/market.spec.ts`; "solo acciones COP activas operables" se completa con las compras del Slice 3. |
-| MDATA-001 | yes         | yes      | Metadata completa en respuestas (fuente, modo, sesión, moneda, obtención, base) verificada en unit, contract y E2E.                                                                   |
-| MDATA-002 | yes         | partial  | Fallos controlados sin fallback a mock ni arrays vacíos en unit, contract y E2E; el smoke del proveedor real llega al aprobar ADR-0005.                                               |
-| PERF-001  | yes         | yes      | `tests/unit/market-cache.test.ts` (TTL con reloj fijo, ventana negativa), cursor/limit en contract y "Cargar más" en E2E; la UI no se bloquea durante I/O.                            |
-| UI-001    | partial     | partial  | Cinco estados navegables en exploración/detalle (`tests/e2e/market.spec.ts`); otras experiencias en slices 3–4.                                                                       |
-| UI-002    | partial     | partial  | Etiqueta demo, fecha/base/limitaciones visibles y aviso persistente en E2E de mercado; completar accesibilidad automatizada de otras vistas.                                          |
+| ID        | Implemented | Verified | Evidencia y límite                                                                                                                                                                                    |
+| --------- | ----------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| INST-001  | yes         | partial  | `tests/unit/market-dataset.test.ts`, `tests/contract/market-http.test.ts`, `tests/e2e/market.spec.ts`; metadata Equity y operabilidad con moneda compatible quedan sujetas a la fuente real validada. |
+| MDATA-001 | yes         | yes      | Metadata completa en respuestas (fuente, modo, sesión, moneda, obtención, base) verificada en unit, contract y E2E.                                                                                   |
+| MDATA-002 | yes         | partial  | Fallos controlados sin fallback a mock ni arrays vacíos en unit, contract y E2E; el smoke del proveedor real llega al aprobar ADR-0005.                                                               |
+| PERF-001  | yes         | yes      | `tests/unit/market-cache.test.ts` (TTL con reloj fijo, ventana negativa), cursor/limit en contract y "Cargar más" en E2E; la UI no se bloquea durante I/O.                                            |
+| UI-001    | partial     | partial  | Cinco estados navegables en exploración/detalle (`tests/e2e/market.spec.ts`); otras experiencias en slices 3–4.                                                                                       |
+| UI-002    | partial     | partial  | Etiqueta demo, fecha/base/limitaciones visibles y aviso persistente en E2E de mercado; completar accesibilidad automatizada de otras vistas.                                                          |
 
 ## Adición de Fase 1 — Slice 3
 
-**PORT-003/004/005 — Compra y dashboard:** calculadora de compras server-side (`quantity` ROUND_DOWN a 8, `grossAmount` HALF_UP a 2, remanente, fees cero FIN-003), previews de cinco minutos con reloj inyectado y confirmación idempotente transaccional con `FOR UPDATE` del aggregate, re-chequeo de fondos y semántica `PREVIEW_ALREADY_USED`/`IDEMPOTENCY_CONFLICT`. Ledger con `ledger_sequence` bigserial como orden de append autoritativo (corrige la indeterminación de `id` ante timestamps iguales) y BUY con `market_data` jsonb inmutable y clave de idempotencia. Proyección de posiciones (`VALUED`/`PRICE_UNAVAILABLE`, nunca cero) y evolución diaria con arrastre del último cierre conocido y `priceSessionDates`. Endpoints `/buy-previews`, `/buy-previews/{id}/confirm`, `/portfolio/evolution` (cota 365 días) y `/portfolio/transactions`; las posiciones se exponen dentro del snapshot `/portfolio` (la ruta dedicada `/portfolio/positions` queda para evidencia futura). Dashboard con métricas, posiciones, movimientos, gráfica y tabla de evolución, degradación parcial visible y aviso de valores incompletos. Migración `0002` corrige `numeric(24,8) → numeric(28,8)` conforme a ADR-0004. Límites: `CORPORATE_ACTION_UNSUPPORTED` reservado; valoración incompleta sin precios demo posteriores a la cobertura del dataset.
+**PORT-003/004/005 — Compra y dashboard:** calculadora de compras server-side (`quantity` ROUND_DOWN a 8, `grossAmount` HALF_UP a 2, remanente, fees cero FIN-003), previews de cinco minutos con reloj inyectado y confirmación idempotente transaccional con `FOR UPDATE` del aggregate, re-chequeo de fondos y semántica `PREVIEW_ALREADY_USED`/`IDEMPOTENCY_CONFLICT`. Ledger con `ledger_sequence` bigserial como orden de append autoritativo (corrige la indeterminación de `id` ante timestamps iguales) y BUY con `market_data` jsonb inmutable y clave de idempotencia. Proyección de posiciones (`VALUED`/`PRICE_UNAVAILABLE`, nunca cero) y evolución diaria con arrastre del último cierre conocido y `priceSessionDates`. Endpoints `/buy-previews`, `/buy-previews/{id}/confirm`, `/portfolio/evolution` (cota 365 días) y `/portfolio/transactions`; las posiciones se exponen dentro del snapshot `/portfolio` y la ruta dedicada `/portfolio/positions` se completa en Slice 6B. Dashboard con métricas, posiciones, movimientos, gráfica y tabla de evolución, degradación parcial visible y aviso de valores incompletos. Migración `0002` corrige `numeric(24,8) → numeric(28,8)` conforme a ADR-0004. Límites: `CORPORATE_ACTION_UNSUPPORTED` reservado; valoración incompleta sin precios demo posteriores a la cobertura del dataset.
 
-| ID       | Implemented | Verified | Evidencia y límite                                                                                                                                                                                                                                                                                |
-| -------- | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PORT-003 | yes         | yes      | `tests/unit/purchase-calculator.test.ts`, `tests/integration/portfolio.test.ts` (replay, vencida, fondos, concurrencia con `FOR UPDATE`, conflicto entre previews), `tests/contract/trading.test.ts` (201/200/409/410), `tests/e2e/trading.spec.ts` (flujo completo 2.000.000 → saldo 8.000.000). |
-| PORT-004 | yes         | partial  | `tests/unit/position-projector.test.ts`, snapshot con `PRICE_UNAVAILABLE`/`INCOMPLETE` en contract y dashboard; agregación multi-BUY y `CORPORATE_ACTION_UNSUPPORTED` quedan para evidencia futura.                                                                                               |
-| PORT-005 | yes         | partial  | `tests/unit/portfolio-evolution.test.ts`, `tests/contract/trading.test.ts` (arrastre 2026-08-28 y nulls incompletos), `tests/e2e/trading.spec.ts`; la serie con precios demo reales y huecos completos llega con el dataset real (ADR-0005).                                                      |
-| FIN-002  | yes         | yes      | Escalas money 2 / quantity 8 con redondeos explícitos, esquemas `numeric(24,2)`/`numeric(28,8)` y fracción de compra verificadas en unit, integration y contract.                                                                                                                                 |
-| FIN-003  | yes         | yes      | `calculatePurchase` con fees `0.00` y débito exacto; contrato y E2E verifican el resultado bruto.                                                                                                                                                                                                 |
-| SEC-001  | yes         | partial  | Recálculo server-side con body estricto (`additionalProperties: false`) y datos de confirmación tomados solo de la preview; tampering HTTP cubierto en contract, test de manipulación de datos almacenados queda como evidencia futura.                                                           |
-| PORT-002 | yes         | yes      | Reconstrucción con depósito y BUY verificados en unit/integration con orden por `ledger_sequence`.                                                                                                                                                                                                |
+| ID       | Implemented | Verified | Evidencia y límite                                                                                                                                                                                                                                                                                                         |
+| -------- | ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PORT-003 | yes         | yes      | `tests/unit/purchase-calculator.test.ts`, `tests/integration/portfolio.test.ts` (replay, vencida, fondos, concurrencia con `FOR UPDATE`, conflicto entre previews), `tests/contract/trading.test.ts` (201/200/409/410), `tests/e2e/trading.spec.ts` (flujo completo 2.000.000 → saldo 8.000.000).                          |
+| PORT-004 | yes         | yes      | `tests/unit/position-projector.test.ts`, `tests/integration/portfolio-positions.test.ts`, `tests/contract/trading.test.ts` y `tests/e2e/portfolio.spec.ts`; cubren agregación multi-BUY, ruta dedicada, valoración completa e incompleta y ausencia de precio sin cero. `CORPORATE_ACTION_UNSUPPORTED` continúa reservado. |
+| PORT-005 | yes         | partial  | `tests/unit/portfolio-evolution.test.ts`, `tests/contract/trading.test.ts` (arrastre 2026-08-28 y nulls incompletos), `tests/e2e/trading.spec.ts`; la serie con precios demo reales y huecos completos llega con el dataset real (ADR-0005).                                                                               |
+| FIN-002  | yes         | yes      | Escalas money 2 / quantity 8 con redondeos explícitos, esquemas `numeric(24,2)`/`numeric(28,8)` y fracción de compra verificadas en unit, integration y contract.                                                                                                                                                          |
+| FIN-003  | yes         | yes      | `calculatePurchase` con fees `0.00` y débito exacto; contrato y E2E verifican el resultado bruto.                                                                                                                                                                                                                          |
+| SEC-001  | yes         | yes      | Recálculo server-side con body estricto (`additionalProperties: false`), datos de confirmación tomados solo de la preview y `CORRUPT_LEDGER` explícito ante `market_data` persistido inválido; evidencia en contract, integración y E2E.                                                                                   |
+| PORT-002 | yes         | yes      | Reconstrucción con depósito y BUY verificados en unit/integration con orden por `ledger_sequence`.                                                                                                                                                                                                                         |
 
 ## Reglas de actualización
 
@@ -90,7 +117,7 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 
 ## Adición de Fase 1 — Slice 4
 
-**HIST-001/002/003 — Simulación histórica:** `POST /api/v1/historical-simulations` resuelve el inicio con `ON_OR_AFTER` y el final con `ON_OR_BEFORE` (o la última sesión disponible), calcula cantidad teórica, inversión, remanente, valor final, P&L y retorno bruto con decimales exactos, y nunca persiste ni modifica el ledger. La UI independiente `/simulator` muestra resultado, serie, tabla, metadata, supuestos, etiqueta `demo` y errores de cobertura. La implementación usa el contrato de mercado existente y no selecciona un proveedor real; ADR-0005 sigue siendo el bloqueo de aceptación MVP con datos reales.
+**HIST-001/002/003 — Simulación histórica:** `POST /api/v1/historical-simulations` resuelve el inicio con `ON_OR_AFTER` y el final con `ON_OR_BEFORE` (o la última sesión disponible), calcula cantidad teórica, inversión, remanente, valor final, P&L y retorno bruto con decimales exactos, y nunca persiste ni modifica el ledger. La UI independiente `/simulator` muestra resultado, serie, tabla, metadata, supuestos, etiqueta `demo` y errores de cobertura. La implementación usa el contrato de mercado existente; Twelve Data está aceptada para ingesta local educativa, pero el dataset real aún no es la fuente predeterminada.
 
 | ID       | Implemented | Verified | Evidencia y límite                                                                                                                                                                                                   |
 | -------- | ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -117,30 +144,49 @@ históricas de la tabla base se consideran actualizadas por esta sección.
 
 ## Plan de cierre — Slice 6
 
-Slice 6 se ejecutará en dos partes según
-[`slice-six-plan.md`](../delivery/slice-six-plan.md). Esta sección no cambia
-estados de implementación ni verificación: solo registra el trabajo pendiente.
+Slice 6 se ejecutó en dos partes según
+[`slice-six-plan.md`](../delivery/slice-six-plan.md). Esta sección registra la
+evidencia de cierre y sus límites de uso.
+
+La falta de una muestra gratuita suficiente en un mercado concreto no se
+resolverá ampliando el tipo de activo. El MVP puede utilizar cualquier mercado
+que cumpla ADR-0005; la muestra global y el alcance educativo local ya tienen
+evidencia técnica y un dataset normalizado, pero `datasets/demo` continúa siendo
+la fuente activa por defecto.
 
 ### Slice 6A — Fuente real controlada
 
-| ID        | Implemented | Verified | Evidencia pendiente                                                      |
-| --------- | ----------- | -------- | ------------------------------------------------------------------------ |
-| MDATA-001 | yes         | partial  | Probar metadata contra una fuente real aprobada, con base y procedencia. |
-| MDATA-002 | yes         | partial  | Smoke real, límites y fallos explícitos sin fallback silencioso.         |
-| INST-001  | yes         | partial  | Confirmar acciones colombianas activas en COP en la muestra real.        |
-| HIST-002  | yes         | yes      | Validar calendario y sesiones del proveedor real.                        |
-| HIST-003  | yes         | yes      | Repetir escenarios con datos reales sin cambiar la matemática.           |
-| PORT-004  | yes         | partial  | Evidencia con múltiples compras y dataset real.                          |
-| PORT-005  | yes         | partial  | Evolución completa y huecos con dataset real.                            |
+| ID        | Implemented | Verified | Evidencia / límite                                                                                                                      |
+| --------- | ----------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| MDATA-001 | yes         | yes      | `scripts/ingest-twelve-data.ts` y `npm run market:verify`: metadata real, base `UNADJUSTED_CLOSE`, procedencia y checksum.              |
+| MDATA-002 | yes         | partial  | Smoke real, límites y fallos explícitos sin fallback silencioso.                                                                        |
+| INST-001  | yes         | yes      | `npm run market:verify`: tres Equity activas USD, exchange/MIC, histórico y metadata del dataset real.                                  |
+| SCOPE-001 | yes         | yes      | `npm run market:ingest` + `npm run market:verify`: universo local de tres Equity gratuitas, sin exclusividad geográfica ni otros tipos. |
+| FIN-004   | yes         | yes      | `tests/unit/config.test.ts` y `tests/contract/trading.test.ts`; perfiles COP/USD, persistencia, proyección y rechazo de mezcla sin FX.  |
+| HIST-002  | yes         | yes      | Validar calendario y sesiones del proveedor real.                                                                                       |
+| HIST-003  | yes         | yes      | Repetir escenarios con datos reales sin cambiar la matemática.                                                                          |
+| PORT-004  | yes         | partial  | Evidencia con múltiples compras y dataset real.                                                                                         |
+| PORT-005  | yes         | partial  | Evolución completa y huecos con dataset real.                                                                                           |
+
+**Resultado de la evaluación de cuenta (2026-09-11):** `ECO:BVC` devolvió
+`BVC`/`XBOG`/`COP` y 1.595 observaciones diarias entre 2020-01-02 y 2026-09-09.
+Las consultas adicionales (`BIC`, `ISA`, `GEB`, `CEL`, `ARG`, `ETB` y `BVC`)
+respondieron que requieren Ultra o Enterprise. La muestra global
+`AAPL:NASDAQ`, `MSFT:NASDAQ` y `KO:NYSE` sí devolvió USD y 1.680 observaciones
+diarias por símbolo entre 2020-01-02 y 2026-09-09, sin duplicados ni cierres
+inválidos, usando `adjust=none`. La cobertura colombiana no es criterio
+obligatorio. La muestra real local quedó normalizada con manifiesto/checksum y
+validada con `npm run market:verify`; la aceptación continúa limitada al uso
+educativo local y no autoriza redistribución.
 
 ### Slice 6B — Ruta y evidencia final
 
-| ID       | Implemented | Verified | Evidencia pendiente                                                        |
-| -------- | ----------- | -------- | -------------------------------------------------------------------------- |
-| PORT-004 | yes         | partial  | Implementar y probar `GET /portfolio/positions`.                           |
-| PORT-005 | yes         | partial  | Verificar la ruta de posiciones junto con la evolución sin regresiones.    |
-| SEC-001  | yes         | partial  | Completar la prueba de integridad de datos persistidos y autoridad server. |
-| UI-001   | partial     | partial  | Cubrir estados de la nueva ruta en la experiencia aplicable.               |
-| UI-002   | partial     | partial  | Mantener explicación y procedencia en la superficie de posiciones.         |
-| OBS-001  | partial     | partial  | Confirmar `requestId`, Problem y logs en la ruta nueva.                    |
-| SDD-001  | partial     | partial  | Registrar gates, límites y decisión final del MVP.                         |
+| ID       | Implemented | Verified | Evidencia pendiente                                                                                                                                |
+| -------- | ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PORT-004 | yes         | yes      | `GET /portfolio/positions` implementado sobre el snapshot autoritativo, con portafolio vacío, múltiples compras, valoración completa e incompleta. |
+| PORT-005 | yes         | partial  | Verificar la ruta de posiciones junto con la evolución sin regresiones.                                                                            |
+| SEC-001  | yes         | yes      | Prueba de integridad de datos persistidos y autoridad server completada; el ledger corrupto no se convierte en resultado financiero.               |
+| UI-001   | partial     | partial  | Cubrir estados de la nueva ruta en la experiencia aplicable.                                                                                       |
+| UI-002   | partial     | partial  | Mantener explicación y procedencia en la superficie de posiciones.                                                                                 |
+| OBS-001  | partial     | partial  | La ruta nueva conserva `requestId`, `Problem` y logs estructurados; la cobertura transversal de todas las rutas permanece parcial.                 |
+| SDD-001  | partial     | partial  | Gates y límites registrados; 6A queda cerrado para la demo local y la política futura de PRs sigue fuera de este slice.                            |

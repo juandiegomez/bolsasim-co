@@ -22,13 +22,14 @@ describe("FIN-001: Money keeps exact decimals with explicit currency", () => {
       expect((error as DomainError).code).toBe("INVALID_SCALE");
     }
   });
-  it("rejects non-finite, out-of-range amounts and non-COP currencies", () => {
+  it("rejects non-finite, out-of-range amounts and malformed currencies", () => {
     expect(() => Money.create("Infinity", "COP")).toThrow(DomainError);
     expect(() => Money.create(new Decimal("1e22"), "COP")).toThrow(DomainError);
+    expect(Money.create("1.00", "USD").currency).toBe("USD");
     try {
-      Money.create("1.00", "USD" as never);
+      Money.create("1.00", "US");
     } catch (error) {
-      expect((error as DomainError).code).toBe("CURRENCY_MISMATCH");
+      expect((error as DomainError).code).toBe("INVALID_CURRENCY");
     }
   });
   it("allows negative values only as intermediate projection inputs", () => {

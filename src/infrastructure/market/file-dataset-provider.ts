@@ -30,7 +30,8 @@ interface DatasetManifest {
   cutoffDate: string;
   files: ManifestFile;
   timezone: string;
-  currency: string;
+  currency: string | null;
+  currencies?: string[];
   frequency: string;
   priceDefinition: {
     field: string;

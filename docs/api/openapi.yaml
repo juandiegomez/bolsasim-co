@@ -2,7 +2,11 @@ openapi: 3.1.0
 info:
   title: BolsaSim CO API
   version: 0.1.0
-  description: API de una demo local de inversión con capital ficticio.
+  description: >-
+    API de una demo local de inversión con capital ficticio. El MVP admite
+    únicamente instrumentos EQUITY activos con acceso gratuito validado, sin
+    exclusividad geográfica. Cada portafolio opera con una sola moneda y no
+    realiza conversión FX.
   license:
     name: Apache-2.0
     identifier: Apache-2.0
@@ -427,7 +431,13 @@ components:
       required: [amount, currency]
       properties:
         amount: { $ref: "#/components/schemas/Decimal" }
-        currency: { type: string, pattern: "^[A-Z]{3}$", examples: [COP] }
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: >-
+            Moneda ISO 4217. En operaciones de portafolio debe coincidir con
+            la moneda única de liquidación configurada.
+          examples: [COP, USD]
     MarketDate:
       type: string
       format: date
@@ -437,6 +447,10 @@ components:
       default: UNADJUSTED_CLOSE
     InstrumentType:
       type: string
+      description: >-
+        Tipos reconocidos por el modelo. En el MVP y Slice 6 solo EQUITY está
+        habilitado y es operable; los demás valores quedan reservados para
+        futuros requirements.
       enum: [EQUITY, ETF, FIXED_INCOME, FUND, INDEX, CURRENCY]
     InstrumentStatus:
       type: string
@@ -448,7 +462,9 @@ components:
         id: { type: string, format: uuid }
         symbol: { type: string }
         name: { type: string }
-        exchange: { type: string }
+        exchange:
+          type: string
+          description: Exchange del instrumento; no se restringe a Colombia.
         currency: { type: string, pattern: "^[A-Z]{3}$" }
         type: { $ref: "#/components/schemas/InstrumentType" }
         status: { $ref: "#/components/schemas/InstrumentStatus" }

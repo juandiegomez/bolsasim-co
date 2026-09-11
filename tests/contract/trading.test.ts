@@ -21,6 +21,7 @@ import { runMigrations } from "@/infrastructure/database/migrate";
 import { asPreviewId, asTransactionId, asUserId } from "@/domain/ids";
 import { Money } from "@/domain/money";
 import { createPortfolioQueryHandlers } from "@/infrastructure/http/portfolio-queries-handlers";
+import { createPortfolioPositionsHandlers } from "@/infrastructure/http/portfolio-positions-handlers";
 import { createTradingHandlers } from "@/infrastructure/http/trading-handlers";
 import { createFileDatasetMarketDataProvider } from "@/infrastructure/market/file-dataset-provider";
 
@@ -38,6 +39,7 @@ function compile(name: string) {
 const buyPreviewValidator = compile("BuyPreview");
 const confirmationValidator = compile("BuyConfirmation");
 const transactionValidator = compile("Transaction");
+const positionValidator = compile("Position");
 const evolutionPointValidator = compile("PortfolioEvolutionPoint");
 const problem = compile("Problem");
 
@@ -65,7 +67,7 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
     if (database) await database.close();
   });
 
-  async function wiring() {
+  async function wiring(deposit = initialDeposit) {
     const portfolios = createDrizzlePortfolioRepository(database.db);
     const previews = createDrizzleBuyPreviewRepository(database.db);
     const provider = await createFileDatasetMarketDataProvider({
@@ -77,9 +79,16 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
       repository: portfolios,
       currentUser,
       clock,
-      initialDeposit,
+      initialDeposit: deposit,
     });
     await initialize.execute();
+    const snapshot = createGetPortfolioSnapshot({
+      repository: portfolios,
+      currentUser,
+      clock,
+      initialDeposit: deposit,
+      provider,
+    });
     const trading = createTradingHandlers(
       {
         preview: createCreateBuyPreview({
@@ -88,7 +97,7 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
           provider,
           currentUser,
           clock,
-          initialDeposit,
+          initialDeposit: deposit,
           createPreviewId: () => asPreviewId(randomUUID()),
         }),
         confirm: createConfirmBuyPreview({
@@ -98,13 +107,7 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
           clock,
           createTransactionId: () => asTransactionId(randomUUID()),
         }),
-        snapshot: createGetPortfolioSnapshot({
-          repository: portfolios,
-          currentUser,
-          clock,
-          initialDeposit,
-          provider,
-        }),
+        snapshot,
       },
       { log: () => {} },
     );
@@ -114,7 +117,7 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
           repository: portfolios,
           provider,
           currentUser,
-          initialDeposit,
+          initialDeposit: deposit,
         }),
         transactions: createListPortfolioTransactions({
           repository: portfolios,
@@ -123,20 +126,24 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
       },
       { log: () => {} },
     );
-    return { trading, queries };
+    const positions = createPortfolioPositionsHandlers(snapshot, {
+      log: () => {},
+    });
+    return { trading, queries, positions };
   }
 
   async function createPreview(
     trading: Awaited<ReturnType<typeof wiring>>["trading"],
     amount = "2000000.00",
     instrumentId = DEMO1,
+    currency = "COP",
   ) {
     const response = await trading.preview(
       new Request("http://localhost/api/v1/buy-previews", {
         method: "POST",
         body: JSON.stringify({
           instrumentId,
-          amount: { amount, currency: "COP" },
+          amount: { amount, currency },
         }),
       }),
     );
@@ -267,8 +274,48 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
     expect(excessive.body.code).toBe("INSUFFICIENT_FUNDS");
     expect(problem(excessive.body)).toBe(true);
     const usd = await createPreview(trading, "1000.00", DEMOUSD);
-    expect(usd.status).toBe(422);
-    expect(usd.body.code).toBe("INSTRUMENT_NOT_TRADABLE");
+    expect(usd.status).toBe(400);
+    expect(usd.body.code).toBe("CURRENCY_MISMATCH");
+  });
+
+  it("supports an active non-COP Equity when the portfolio profile matches (FIN-004)", async () => {
+    const { trading, queries } = await wiring(
+      Money.create("10000000.00", "USD"),
+    );
+    const preview = await createPreview(trading, "2000000.00", DEMOUSD, "USD");
+    expect(preview.status).toBe(201);
+    expect(preview.body.totalDebit).toEqual({
+      amount: "2000000.00",
+      currency: "USD",
+    });
+    expect(
+      (preview.body as { price: { currency: string } }).price.currency,
+    ).toBe("USD");
+    const confirmed = await confirm(trading, preview.body.id as string);
+    expect(confirmed.status).toBe(201);
+    expect(confirmed.body.transaction.grossAmount).toEqual({
+      amount: "2000000.00",
+      currency: "USD",
+    });
+    expect(confirmed.body.portfolio.cash).toEqual({
+      amount: "8000000.00",
+      currency: "USD",
+    });
+    const evolution = await queries.evolution(
+      new Request(
+        "http://localhost/api/v1/portfolio/evolution?from=2026-08-24&to=2026-09-10",
+      ),
+    );
+    expect(evolution.status).toBe(200);
+    const evolutionBody = (await evolution.json()) as {
+      items: {
+        cash: { currency: string };
+        totalValue: { currency: string } | null;
+      }[];
+    };
+    expect(evolutionBody.items.length).toBeGreaterThan(0);
+    expect(evolutionBody.items.at(-1)?.cash.currency).toBe("USD");
+    expect(evolutionBody.items.at(-1)?.totalValue?.currency).toBe("USD");
   });
 
   it("rejects forged or incomplete requests on the server", async () => {
@@ -326,6 +373,43 @@ describe("PORT-003/PORT-005: trading and portfolio queries contract", () => {
     expect(dragged?.priceSessionDates).toEqual({
       [DEMO1]: "2026-08-28",
     });
+  });
+
+  it("PORT-004/OBS-001: GET /portfolio/positions returns an empty authoritative list", async () => {
+    const { positions } = await wiring();
+    const response = await positions.positions(
+      new Request("http://localhost/api/v1/portfolio/positions", {
+        headers: { "X-Request-Id": "positions-empty" },
+      }),
+    );
+    const body = (await response.json()) as { items: unknown[] };
+    expect(response.status).toBe(200);
+    expect(body.items).toEqual([]);
+    expect(response.headers.get("x-request-id")).toBe("positions-empty");
+  });
+
+  it("PORT-004/MDATA-001: positions match the snapshot and preserve valuation metadata", async () => {
+    const { trading, positions } = await wiring();
+    const preview = await createPreview(trading);
+    const confirmed = await confirm(trading, preview.body.id as string);
+    const response = await positions.positions(
+      new Request("http://localhost/api/v1/portfolio/positions", {
+        headers: { "X-Request-Id": "positions-valued" },
+      }),
+    );
+    const body = (await response.json()) as { items: unknown[] };
+    expect(response.status).toBe(200);
+    expect(body.items).toHaveLength(1);
+    expect(
+      positionValidator(body.items[0]),
+      JSON.stringify(positionValidator.errors),
+    ).toBe(true);
+    expect(body.items[0]).toEqual(confirmed.body.portfolio.positions[0]);
+    expect(
+      (body.items[0] as { price: { metadata: { mode: string } } }).price
+        .metadata.mode,
+    ).toBe("demo");
+    expect(response.headers.get("x-request-id")).toBe("positions-valued");
   });
 
   it("GET /portfolio/transactions lists the ledger newest first with valid shapes", async () => {

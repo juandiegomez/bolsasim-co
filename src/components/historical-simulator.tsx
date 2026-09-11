@@ -117,7 +117,7 @@ export function HistoricalSimulator() {
     void readJson("/api/v1/instruments?status=ACTIVE&limit=100")
       .then((body: { items: InstrumentDTO[] }) => {
         const items = body.items.filter(
-          (item) => item.type === "EQUITY" && item.currency === "COP",
+          (item) => item.type === "EQUITY" && item.status === "ACTIVE",
         );
         setInstrumentState(
           items.length > 0 ? { status: "ready", items } : { status: "empty" },
@@ -142,6 +142,7 @@ export function HistoricalSimulator() {
 
   async function runSimulation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!selectedInstrument) return;
     setRunning(true);
     setError(null);
     setSimulation(null);
@@ -151,7 +152,7 @@ export function HistoricalSimulator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instrumentId: selectedInstrumentId,
-          amount: { amount, currency: "COP" },
+          amount: { amount, currency: selectedInstrument.currency },
           requestedStartDate,
           requestedEndDate: requestedEndDate || null,
           priceBasis: "UNADJUSTED_CLOSE",
@@ -171,7 +172,7 @@ export function HistoricalSimulator() {
         <p role="status">Consultando instrumentos disponibles…</p>
       )}
       {instrumentState.status === "empty" && (
-        <p>No hay acciones COP activas disponibles para simular.</p>
+        <p>No hay acciones Equity activas disponibles para simular.</p>
       )}
       {instrumentState.status === "error" && (
         <div role="alert">
@@ -196,7 +197,7 @@ export function HistoricalSimulator() {
               >
                 {instrumentState.items.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.symbol} · {item.name}
+                    {item.symbol} · {item.name} · {item.currency}
                   </option>
                 ))}
               </select>
@@ -207,7 +208,9 @@ export function HistoricalSimulator() {
               )}
             </div>
             <div>
-              <label htmlFor="historical-amount">Monto inicial (COP)</label>
+              <label htmlFor="historical-amount">
+                Monto inicial ({selectedInstrument?.currency ?? "moneda"})
+              </label>
               <input
                 id="historical-amount"
                 inputMode="decimal"
@@ -342,7 +345,9 @@ function HistoricalResult({ result }: { result: SimulationDTO }) {
       <dl className="simulation-summary">
         <div>
           <dt>Monto inicial</dt>
-          <dd>{result.requestedAmount.amount} COP</dd>
+          <dd>
+            {result.requestedAmount.amount} {result.requestedAmount.currency}
+          </dd>
         </div>
         <div>
           <dt>Cantidad teórica</dt>
@@ -350,11 +355,15 @@ function HistoricalResult({ result }: { result: SimulationDTO }) {
         </div>
         <div>
           <dt>Valor final</dt>
-          <dd>{result.finalValue.amount} COP</dd>
+          <dd>
+            {result.finalValue.amount} {result.finalValue.currency}
+          </dd>
         </div>
         <div>
           <dt>P&amp;L</dt>
-          <dd>{result.pnl.amount} COP</dd>
+          <dd>
+            {result.pnl.amount} {result.pnl.currency}
+          </dd>
         </div>
         <div>
           <dt>Retorno bruto</dt>
@@ -362,7 +371,9 @@ function HistoricalResult({ result }: { result: SimulationDTO }) {
         </div>
         <div>
           <dt>Remanente</dt>
-          <dd>{result.remainder.amount} COP</dd>
+          <dd>
+            {result.remainder.amount} {result.remainder.currency}
+          </dd>
         </div>
       </dl>
       <section aria-labelledby="simulation-chart-title">
@@ -380,7 +391,9 @@ function HistoricalResult({ result }: { result: SimulationDTO }) {
               <XAxis dataKey="date" minTickGap={32} />
               <YAxis domain={["auto", "auto"]} />
               <Tooltip
-                formatter={(value) => `${String(value)} COP`}
+                formatter={(value) =>
+                  String(value) + " " + result.instrument.currency
+                }
                 labelFormatter={(label) => String(label)}
               />
               <Line
@@ -408,8 +421,12 @@ function HistoricalResult({ result }: { result: SimulationDTO }) {
             {result.series.map((point) => (
               <tr key={point.date}>
                 <td>{point.date}</td>
-                <td>{point.price} COP</td>
-                <td>{point.value.amount} COP</td>
+                <td>
+                  {point.price} {result.instrument.currency}
+                </td>
+                <td>
+                  {point.value.amount} {point.value.currency}
+                </td>
               </tr>
             ))}
           </tbody>

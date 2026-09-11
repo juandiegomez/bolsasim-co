@@ -1,11 +1,24 @@
 # Contrato de datos de mercado
 
-**Estado:** interfaz aceptada; proveedor real en evaluación, no seleccionado
-**Requirements:** INST-001, HIST-002, HIST-003, MDATA-001, MDATA-002, PERF-001
+**Estado:** interfaz aceptada; Twelve Data aceptada para ingesta local
+educativa no productiva, no para redistribución o exhibición comercial
+**Requirements:** INST-001, HIST-002, HIST-003, MDATA-001, MDATA-002, PERF-001,
+SCOPE-001, FIN-004
 
 ## Propósito y frontera
 
 `MarketDataProvider` desacopla aplicación y dominio de APIs, archivos o scrapers específicos. Ninguna UI llama directamente al proveedor. Todo adapter, incluido el mock, debe aprobar la misma suite contractual.
+
+El contrato es extensible para representar metadata de otros tipos, pero el
+alcance operativo vigente del MVP/Slice 6 es únicamente `EQUITY` activa del
+universo gratuito validado, sin exclusividad de país, exchange o MIC. Cada
+portafolio usa una única moneda de liquidación y solo opera Equity en esa
+moneda; el perfil COP es el predeterminado y no se hace conversión FX.
+
+La presencia de `ETF`, `FIXED_INCOME`, `FUND`, `INDEX` o `CURRENCY` en tipos
+internos o esquemas no habilita su compra, valoración financiera ni simulación.
+FX, crypto, dividendos y eventos corporativos requieren contratos y reglas
+adicionales.
 
 ## Tipos comunes
 
@@ -117,7 +130,7 @@ Acepta un dataset normalizado y un manifiesto versionado que declare:
 - fecha de descarga y de corte;
 - checksum criptográfico del archivo;
 - instrumentos y cobertura;
-- zona horaria, moneda, frecuencia y significado exacto de cada columna;
+- zona horaria, moneda o conjunto de monedas, frecuencia y significado exacto de cada columna;
 - definición de cierre o ajuste;
 - transformaciones reproducibles y limitaciones.
 
@@ -125,23 +138,31 @@ El arranque falla si manifiesto, checksum o esquema no coinciden. No se incluye 
 
 ## Selección del proveedor real
 
-La decisión está bloqueada. Para aceptar un candidato se exige:
+La decisión está aceptada para la ingesta educativa local de Twelve Data. Para
+mantener o ampliar la aceptación se exige:
 
 1. acceso gratuito reproducible por API o archivo;
 2. permiso de uso compatible con la demo;
-3. muestra de acciones colombianas en COP;
+3. muestra de al menos tres acciones `EQUITY` activas accesibles sin plan
+   pagado adicional, dentro de un mismo perfil operable;
 4. cierres diarios con cobertura suficiente para los escenarios históricos;
 5. metadata de fechas y definición de precio;
 6. pruebas contractuales y registro de limitaciones.
 
-Twelve Data es la primera candidata de evaluación porque documenta cobertura
-de la Bolsa de Valores de Colombia (`XBOG`) y datos EOD, pero su acceso, costo y
-condiciones de uso deben verificarse para la cuenta concreta. Los planes
-personales pueden servir para uso educativo local, pero no autorizan por sí
-solos la redistribución pública. La serie pública identificada de la
-Superfinanciera describe precios promedio diarios y no puede etiquetarse como
-cierre. Ninguna fuente se aprueba todavía; el detalle de la evaluación está en
-[`slice-six-plan.md`](../delivery/slice-six-plan.md).
+Twelve Data es la fuente seleccionada para la ingesta local porque documenta
+cobertura internacional, datos EOD y el parámetro `adjust=none`, y la cuenta
+evaluada respondió para una muestra USD. Sus planes individuales permiten
+proyectos educativos no comerciales y desarrollo o pruebas no productivas, pero
+no autorizan redistribución ni exhibición comercial a terceros. La evaluación y
+sus límites están registrados en
+[`ADR-0005`](../adr/0005-market-data-source.md).
+La serie pública identificada de la Superfinanciera describe precios promedio
+diarios y no puede etiquetarse como cierre. Twelve Data es la fuente aprobada
+para la muestra local normalizada de `AAPL`, `MSFT` y `KO`; `npm run market:verify`
+comprueba sus checksums y operaciones del adapter sin llamar al proveedor. La
+evaluación puede usar cualquier mercado, siempre que cumpla el perfil operable,
+el criterio de acceso gratuito y las condiciones de uso locales. El detalle
+está en [`slice-six-plan.md`](../delivery/slice-six-plan.md).
 
 ## Caché
 

@@ -55,14 +55,18 @@ test("PORT-003/UI-001: the buy flow previews, confirms and updates the dashboard
   await page.waitForURL("http://127.0.0.1:3100/");
 
   await expect(page.getByText("Efectivo disponible")).toBeVisible();
-  await expect(page.getByTestId("available-cash")).toHaveText("$ 8.000.000,00");
+  await expect(page.getByTestId("available-cash")).toHaveText(
+    "$ 8.000.000,00 COP",
+  );
   await expect(page.getByText("Posiciones derivadas del ledger")).toBeVisible();
   await expect(page.getByRole("table").first()).toContainText("DEMO1");
   await expect(page.getByText("Movimientos recientes")).toBeVisible();
   await expect(page.getByText("Compra simulada")).toBeVisible();
   await expect(page.getByText("Evolución del portafolio")).toBeVisible();
   await page.reload();
-  await expect(page.getByTestId("available-cash")).toHaveText("$ 8.000.000,00");
+  await expect(page.getByTestId("available-cash")).toHaveText(
+    "$ 8.000.000,00 COP",
+  );
 });
 
 test("PORT-003/UI-001: insufficient funds surface a controlled error in the panel", async ({

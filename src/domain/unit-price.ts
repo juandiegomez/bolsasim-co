@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { FinancialDecimal } from "./decimal";
 import { DomainError } from "./errors";
-import type { Currency } from "./money";
+import { parseCurrency, type Currency } from "./money";
 
 const UNIT_PRICE_SCALE = 8;
 const UNIT_PRICE_LIMIT = new FinancialDecimal("1e20");
@@ -13,6 +13,7 @@ export class UnitPrice {
   ) {}
 
   static create(value: string | Decimal, currency: Currency): UnitPrice {
+    const parsedCurrency = parseCurrency(currency);
     const amount =
       value instanceof Decimal ? value : new FinancialDecimal(value);
     if (!amount.isFinite() || !amount.isPositive()) {
@@ -33,7 +34,7 @@ export class UnitPrice {
         "El precio excede la magnitud soportada por numeric(28,8).",
       );
     }
-    return new UnitPrice(amount, currency);
+    return new UnitPrice(amount, parsedCurrency);
   }
 
   toString(): string {

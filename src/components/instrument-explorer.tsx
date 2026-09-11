@@ -156,7 +156,8 @@ export function InstrumentExplorer() {
         <p>
           <strong>demo</strong> identifica datos preparados para aprender. El
           estado <strong>ACTIVE</strong> indica que la acción puede usarse en
-          una compra simulada. La moneda COP significa pesos colombianos.
+          una compra simulada cuando su moneda coincide con la del portafolio.
+          La moneda indica en qué unidad está expresado el precio.
         </p>
       </details>
       <p className="muted">

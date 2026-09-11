@@ -22,6 +22,10 @@ const decimalAmount = z
   )
   .refine((value) => value !== "0.00", "Expected a positive amount");
 
+const currencyCode = z
+  .string()
+  .regex(/^[A-Z]{3}$/, "Expected an ISO 4217 currency code");
+
 const optionalPath = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim() === "" ? undefined : value,
@@ -39,7 +43,11 @@ const schema = z.object({
       "Expected a UUID",
     )
     .default("00000000-0000-0000-0000-000000000001"),
-  INITIAL_DEPOSIT_COP: decimalAmount.default("10000000.00"),
+  SETTLEMENT_CURRENCY: currencyCode.default("COP"),
+  INITIAL_DEPOSIT_AMOUNT: decimalAmount.optional(),
+  // Backward-compatible alias for existing local .env files. New profiles
+  // must use INITIAL_DEPOSIT_AMOUNT because the amount is not COP-specific.
+  INITIAL_DEPOSIT_COP: decimalAmount.optional(),
   MARKET_DATA_ADAPTER: z.enum(["mock", "file"]).default("mock"),
   MARKET_DATA_FILE_PATH: optionalPath,
   MARKET_DATA_MANIFEST_PATH: optionalPath,
@@ -56,6 +64,25 @@ const schema = z.object({
 });
 
 const schemaWithDatasetRequirements = schema.superRefine((value, ctx) => {
+  if (
+    value.INITIAL_DEPOSIT_AMOUNT &&
+    value.INITIAL_DEPOSIT_COP &&
+    value.INITIAL_DEPOSIT_AMOUNT !== value.INITIAL_DEPOSIT_COP
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["INITIAL_DEPOSIT_AMOUNT"],
+      message: "INITIAL_DEPOSIT_AMOUNT and INITIAL_DEPOSIT_COP cannot disagree",
+    });
+  }
+  if (value.SETTLEMENT_CURRENCY !== "COP" && !value.INITIAL_DEPOSIT_AMOUNT) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["INITIAL_DEPOSIT_AMOUNT"],
+      message:
+        "INITIAL_DEPOSIT_AMOUNT is required when SETTLEMENT_CURRENCY is not COP",
+    });
+  }
   if (value.MARKET_DATA_ADAPTER === "file") {
     for (const field of [
       "MARKET_DATA_FILE_PATH",

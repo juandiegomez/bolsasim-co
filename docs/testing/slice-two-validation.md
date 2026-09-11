@@ -3,7 +3,7 @@
 ## Alcance materializado
 
 - Puerto `MarketDataProvider` (seis operaciones del contrato de datos de mercado, cursor opaco, `limit` 1–100) en `src/application/ports/market-data-provider.ts`, con casos de uso de listado/búsqueda, detalle, último cierre y serie histórica.
-- Adapter de archivo (`src/infrastructure/market/file-dataset-provider.ts`) que valida manifiesto versionado, checksum SHA-256 por archivo y esquema del dataset al construir; el arranque falla ante discrepancia. El dataset demo commiteado (`datasets/demo`, etiqueta demo) sirve como mock contractual; `MARKET_DATA_ADAPTER=file` habilita datasets reales cuando ADR-0005 se apruebe.
+- Adapter de archivo (`src/infrastructure/market/file-dataset-provider.ts`) que valida manifiesto versionado, checksum SHA-256 por archivo y esquema del dataset al construir; el arranque falla ante discrepancia. El dataset demo commiteado (`datasets/demo`, etiqueta demo) sirve como mock contractual; `MARKET_DATA_ADAPTER=file` habilita un dataset real local previamente normalizado según ADR-0005. Los datos reales de Twelve Data no se commitean ni redistribuyen.
 - Core de dataset (`dataset-provider.ts`): orden determinista por símbolo, unicidad de sesiones, cierres positivos con máximo 8 decimales, moneda y base homogéneas, resolución direccional `ON_OR_AFTER`/`ON_OR_BEFORE` sin interpolar sesiones y errores explícitos (`INSTRUMENT_NOT_FOUND`, `NO_MARKET_DATA`, `NO_MARKET_SESSION`, `INVALID_DATE_RANGE`, `INVALID_QUERY`, `COVERAGE_INSUFFICIENT`, `UNSUPPORTED_PRICE_BASIS`, `INVALID_PROVIDER_DATA`).
 - Caché en proceso (ADR-0007): TTL 300 s para recientes, 86 400 s para históricos, ventana negativa de 5 s para fallos reintentables; nunca cachea otros errores ni provoca fallback silencioso.
 - HTTP: `/api/v1/instruments`, `/api/v1/instruments/{id}`, `/api/v1/instruments/{id}/price`, `/api/v1/instruments/{id}/history` con mapeo de errores a Problem RFC 7807 (`404/400/422/429/502/503`).
@@ -38,11 +38,16 @@
 ## Cambios operativos
 
 - Config activa `MARKET_DATA_ADAPTER`, `MARKET_DATA_FILE_PATH`, `MARKET_DATA_MANIFEST_PATH`, `MARKET_DATA_RECENT_TTL_SECONDS` (300) y `MARKET_DATA_HISTORICAL_TTL_SECONDS` (86 400); las cadenas vacías en paths se tratan como ausentes y `adapter=file` exige ambos paths.
-- `datasets/demo` con manifiesto y checksums conmutables por un dataset real con la misma estructura; README del dataset documenta procedencia y limitaciones.
+- `datasets/demo` con manifiesto y checksums conmutables por `datasets/real` con
+  la misma estructura; `docs/data/twelve-data-local-ingestion.md` documenta la
+  ingesta, procedencia, checksums y limitaciones del dataset real.
 
 ## Límites y pendientes
 
-- ADR-0005 sigue Proposed/blocking: este slice se valida como demo; la aceptación MVP exige dataset real aprobado (la investigación de boletines BVC y datasets abiertos queda como trabajo separado).
+- ADR-0005 acepta Twelve Data para ingesta local educativa: este slice se
+  valida como demo y el dataset real local conserva procedencia, checksum y
+  restricciones de uso (la investigación de boletines BVC y datasets abiertos
+  queda como trabajo separado).
 - `getPriceOnDate` no tiene ruta pública (consumo interno de Slices 3–4).
 - HIST-001–003 (simulación) y PORT-003–005 (compras) permanecen pendientes.
 - El componente de detalle usa conversión numérica solo para graficar; la tabla y el último cierre se serializan como strings exactos.

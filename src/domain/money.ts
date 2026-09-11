@@ -2,7 +2,26 @@ import Decimal from "decimal.js";
 import { FinancialDecimal } from "./decimal";
 import { DomainError } from "./errors";
 
-export type Currency = "COP";
+// FIN-001/FIN-004: currency codes are explicit ISO 4217-style identifiers.
+// The provider/profile decides which codes are available; the domain only
+// accepts the canonical three-letter representation and never converts them.
+export type Currency = string;
+
+const CURRENCY_PATTERN = /^[A-Z]{3}$/;
+
+export function isCurrencyCode(value: string): boolean {
+  return CURRENCY_PATTERN.test(value);
+}
+
+export function parseCurrency(value: string): Currency {
+  if (!isCurrencyCode(value)) {
+    throw new DomainError(
+      "INVALID_CURRENCY",
+      "La moneda debe usar un código ISO 4217 de tres letras mayúsculas.",
+    );
+  }
+  return value;
+}
 
 const MONEY_SCALE = 2;
 const MONEY_LIMIT = new FinancialDecimal("1e22");
@@ -19,6 +38,7 @@ export class Money {
   ) {}
 
   static create(value: string | Decimal, currency: Currency): Money {
+    const parsedCurrency = parseCurrency(currency);
     const decimal = toDecimal(value);
     if (!decimal.isFinite()) {
       throw new DomainError(
@@ -38,7 +58,7 @@ export class Money {
         "El monto excede la magnitud soportada por numeric(24,2).",
       );
     }
-    return new Money(decimal, currency);
+    return new Money(decimal, parsedCurrency);
   }
 
   static zero(currency: Currency): Money {

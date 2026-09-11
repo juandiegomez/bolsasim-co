@@ -4,7 +4,7 @@ import type { BuyPreviewRepository } from "@/application/ports/buy-preview-repos
 import type { BuyPreview } from "@/domain/buy-preview";
 import { DomainError } from "@/domain/errors";
 import { asInstrumentId, asTransactionId } from "@/domain/ids";
-import { Money } from "@/domain/money";
+import { Money, parseCurrency } from "@/domain/money";
 import { Quantity } from "@/domain/quantity";
 import { createBuy, type Transaction } from "@/domain/transaction";
 import { UnitPrice } from "@/domain/unit-price";
@@ -44,14 +44,15 @@ function mapTransaction(row: typeof transactions.$inferSelect): Transaction {
       "CORRUPT_LEDGER",
       "La compra persistida es inválida.",
     );
+  const currency = parseCurrency(row.currency);
   return createBuy({
     transactionId: asTransactionId(row.id),
     portfolioId: row.portfolioId as never,
     instrumentId: asInstrumentId(row.instrumentId),
     quantity: Quantity.create(row.quantity),
-    unitPrice: UnitPrice.create(row.unitPrice, "COP"),
-    grossAmount: Money.create(row.grossAmount, "COP"),
-    fees: Money.create(row.fees, "COP"),
+    unitPrice: UnitPrice.create(row.unitPrice, currency),
+    grossAmount: Money.create(row.grossAmount, currency),
+    fees: Money.create(row.fees, currency),
     executedAt: row.executedAt,
     marketSessionDate: row.marketSessionDate,
     marketData: row.marketData as never,
@@ -116,7 +117,10 @@ export function createDrizzleBuyPreviewRepository(
         }
         const portfolio = (
           await tx
-            .select({ status: portfolios.status })
+            .select({
+              status: portfolios.status,
+              baseCurrency: portfolios.baseCurrency,
+            })
             .from(portfolios)
             .where(eq(portfolios.id, input.portfolioId))
             .for("update")
@@ -125,6 +129,13 @@ export function createDrizzleBuyPreviewRepository(
           throw new DomainError(
             "SCENARIO_ARCHIVED",
             "La previsualización pertenece a un escenario archivado.",
+          );
+        }
+        const portfolioCurrency = parseCurrency(portfolio.baseCurrency);
+        if (preview.currency !== portfolioCurrency) {
+          throw new DomainError(
+            "CORRUPT_LEDGER",
+            "La previsualización no coincide con la moneda del portafolio.",
           );
         }
         if (preview.idempotencyKey) {
@@ -166,7 +177,7 @@ export function createDrizzleBuyPreviewRepository(
         if (
           Money.create(
             String(cash.rows[0]?.cash ?? "0"),
-            "COP",
+            portfolioCurrency,
           ).amount.lessThan(preview.totalDebit)
         ) {
           throw new DomainError(

@@ -1,6 +1,6 @@
-import { Money } from "@/domain/money";
 import { asUserId } from "@/domain/ids";
 import { getEnvironment } from "@/infrastructure/config/env";
+import { getConfiguredInitialDeposit } from "@/infrastructure/config/portfolio-profile";
 import { createSystemClock } from "@/infrastructure/clock/system-clock";
 import { createDrizzlePortfolioRepository } from "@/infrastructure/database/portfolio-repository";
 import { getApplicationDatabase } from "@/infrastructure/database/singleton";
@@ -25,7 +25,7 @@ export async function createDefaultPortfolioRouteDependencies() {
   const currentUser = createLocalUserProvider(
     asUserId(environment.DEMO_USER_ID),
   );
-  const initialDeposit = Money.create(environment.INITIAL_DEPOSIT_COP, "COP");
+  const initialDeposit = getConfiguredInitialDeposit(environment);
   const provider = await getMarketDataProvider();
   return {
     initialize: createInitializePortfolio({

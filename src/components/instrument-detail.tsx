@@ -53,6 +53,7 @@ interface BuyPreviewDTO {
   quantity: string;
   grossAmount: { amount: string; currency: string };
   remainder: { amount: string; currency: string };
+  fees: { amount: string; currency: string };
   totalDebit: { amount: string; currency: string };
   expiresAt: string;
   price: PriceObservationDTO;
@@ -66,6 +67,7 @@ type DetailState =
       latest: PriceObservationDTO;
       series: SeriesDTO | null;
       seriesUnavailable: string | null;
+      portfolioCurrency: string | null;
     }
   | { status: "error"; message: string };
 
@@ -104,7 +106,23 @@ async function loadDetail(instrumentId: string): Promise<DetailState> {
           (error as { code?: string }).code ?? "SERIES_UNAVAILABLE";
       }
     }
-    return { status: "ready", instrument, latest, series, seriesUnavailable };
+    let portfolioCurrency: string | null = null;
+    try {
+      const portfolio = (await readJson("/api/v1/portfolio")) as {
+        cash?: { currency?: string };
+      };
+      portfolioCurrency = portfolio.cash?.currency ?? null;
+    } catch {
+      // The portfolio may not be initialized yet; the detail remains readable.
+    }
+    return {
+      status: "ready",
+      instrument,
+      latest,
+      series,
+      seriesUnavailable,
+      portfolioCurrency,
+    };
   } catch (error) {
     const code = (error as { code?: string }).code;
     return {
@@ -154,7 +172,8 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
     );
   }
 
-  const { instrument, latest, series, seriesUnavailable } = state;
+  const { instrument, latest, series, seriesUnavailable, portfolioCurrency } =
+    state;
   const chartData = (series?.observations ?? []).map((entry) => ({
     date: entry.sessionDate,
     close: Number(entry.close),
@@ -176,7 +195,7 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
   const canBuy =
     instrument.type === "EQUITY" &&
     instrument.status === "ACTIVE" &&
-    instrument.currency === "COP";
+    portfolioCurrency === instrument.currency;
 
   async function requestPreview() {
     setBuying(true);
@@ -187,7 +206,7 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instrumentId,
-          amount: { amount, currency: "COP" },
+          amount: { amount, currency: instrument.currency },
         }),
       });
       if (!response.ok)
@@ -271,7 +290,8 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
           <div>
             <dt>Moneda</dt>
             <dd>
-              {latest.currency}: el precio está expresado en pesos colombianos.
+              {latest.currency}: el precio y la liquidación deben usar esta
+              moneda; no se hace conversión automática.
             </dd>
           </div>
           <div>
@@ -320,7 +340,9 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
                 void requestPreview();
               }}
             >
-              <label htmlFor="purchase-amount">Monto a invertir (COP)</label>
+              <label htmlFor="purchase-amount">
+                Monto a invertir ({instrument.currency})
+              </label>
               <input
                 id="purchase-amount"
                 inputMode="decimal"
@@ -344,7 +366,8 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
                 <div>
                   <dt>Precio usado</dt>
                   <dd>
-                    {preview.price.close} COP ({preview.price.sessionDate})
+                    {preview.price.close} {preview.price.currency} (
+                    {preview.price.sessionDate})
                   </dd>
                 </div>
                 <div>
@@ -353,11 +376,15 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
                 </div>
                 <div>
                   <dt>Débito</dt>
-                  <dd>$ {preview.totalDebit.amount} COP</dd>
+                  <dd>
+                    $ {preview.totalDebit.amount} {preview.totalDebit.currency}
+                  </dd>
                 </div>
                 <div>
                   <dt>Remanente</dt>
-                  <dd>$ {preview.remainder.amount} COP</dd>
+                  <dd>
+                    $ {preview.remainder.amount} {preview.remainder.currency}
+                  </dd>
                 </div>
               </dl>
               <details className="learning-note">
@@ -380,7 +407,7 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
                     <dt>Débito</dt>
                     <dd>
                       Lo que se descuenta de tu efectivo. En este MVP las
-                      comisiones son COP 0.
+                      comisiones son {preview.fees.currency} 0.
                     </dd>
                   </div>
                   <div>
@@ -420,11 +447,18 @@ export function InstrumentDetail({ instrumentId }: { instrumentId: string }) {
         >
           <h3 id="not-tradable-title">No disponible para compra simulada</h3>
           <p>
-            En este MVP solo se pueden comprar acciones activas denominadas en
-            COP. Este instrumento opera en {instrument.currency}.
+            {!portfolioCurrency
+              ? "Inicializa primero un portafolio para conocer su moneda de liquidación."
+              : instrument.type !== "EQUITY" || instrument.status !== "ACTIVE"
+                ? "Solo se pueden comprar acciones Equity activas del universo gratuito validado."
+                : "Este instrumento opera en " +
+                  instrument.currency +
+                  " y tu portafolio liquida en " +
+                  portfolioCurrency +
+                  "; no se hace conversión automática."}
           </p>
           <Link className="secondary-action" href="/instruments">
-            Ver instrumentos operables en COP
+            Ver instrumentos operables en {portfolioCurrency ?? "tu moneda"}
           </Link>
         </section>
       )}

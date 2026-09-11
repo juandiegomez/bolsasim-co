@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 # Test reports
 playwright-report/
 test-results/
+
+# Licensed market data is local-only and must never be committed
+datasets/real/

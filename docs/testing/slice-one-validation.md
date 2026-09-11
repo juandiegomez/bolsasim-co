@@ -2,7 +2,7 @@
 
 ## Alcance materializado
 
-- Value objects `Money` (escala 2, moneda explícita `COP`, magnitud `numeric(24,2)`) y `Quantity` (escala 8), con redondeos explícitos `roundMoney` (HALF_UP) y `roundQuantity` (ROUND_DOWN) y rechazo de escala excesiva sin redondeo silencioso (FIN-001/FIN-002). La materialización original `numeric(24,8)` de cantidad/precio se corrige a `numeric(28,8)` en Slice 3, conforme ADR-0004.
+- Value objects `Money` (escala 2, moneda explícita, perfil COP predeterminado, magnitud `numeric(24,2)`) y `Quantity` (escala 8), con redondeos explícitos `roundMoney` (HALF_UP) y `roundQuantity` (ROUND_DOWN) y rechazo de escala excesiva sin redondeo silencioso (FIN-001/FIN-002). La materialización original `numeric(24,8)` de cantidad/precio se corrige a `numeric(28,8)` en Slice 3, conforme ADR-0004.
 - Ledger append-only en `transactions` con índice único parcial `transactions_initial_deposit_unique` que protege el depósito inicial, tabla `portfolios` con un portafolio por owner y tabla `users` con la identidad local fija `DEMO_USER_ID` (ADR-0003).
 - `POST /api/v1/portfolios/initialize` idempotente y `GET /api/v1/portfolio` que deriva el snapshot del ledger; errores de dominio traducidos a Problem RFC 7807 sin filtrar detalles internos.
 - Dashboard con estados loading, inicialización, saldo exacto (`$ 10.000.000,00`) y error con reintento; aviso de capital ficticio persistente.
@@ -35,7 +35,7 @@
 
 - Migración `0001_ledger.sql` crea `users`, `portfolios` y `transactions` con los índices de ADR-0003; el journal se reejecuta sin cambios.
 - Nuevo comando `db:create` que crea la base objetivo si no existe; CI lo usa antes de `db:migrate` para preparar `bolsasim_ci`, la base runtime de E2E.
-- La configuración activa las variables reservadas `DEMO_USER_ID` e `INITIAL_DEPOSIT_COP` con los defaults documentados en `.env.example`; valores inválidos fallan con `CONFIGURATION_INVALID` sin imprimir valores.
+- La configuración activa las variables reservadas `DEMO_USER_ID`, `SETTLEMENT_CURRENCY` e `INITIAL_DEPOSIT_AMOUNT` con los defaults documentados en `.env.example`; `INITIAL_DEPOSIT_COP` permanece como alias legado y los valores inválidos fallan con `CONFIGURATION_INVALID` sin imprimir valores.
 
 ## Límites y pendientes
 
