@@ -73,7 +73,9 @@ Para un split conocido sin política implementada, la posición queda `CORPORATE
 
 La caché implementa el mismo puerto y envuelve al adapter seleccionado. TTL inicial: cinco minutos para último precio y 24 horas para históricos; archivos se invalidan por checksum. No hay Redis. Un fallo real nunca activa el adapter mock automáticamente.
 
-La fuente real gratuita es un bloqueo de aceptación: debe demostrar cobertura, cierres diarios, procedencia y permiso de uso. Véase el ADR-0005 y el contrato de mercado.
+La fuente real autorizada es un bloqueo de aceptación: debe demostrar
+cobertura, cierres diarios, procedencia y permiso de uso. El modo demo sigue
+siendo el predeterminado; véanse el ADR-0005 y el plan del Slice 6.
 
 ## API, seguridad y confianza
 

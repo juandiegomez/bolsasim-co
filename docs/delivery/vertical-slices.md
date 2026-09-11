@@ -60,6 +60,45 @@ La evolución conserva una compra en las fechas anteriores al `VOID_BUY` y la
 excluye desde su fecha efectiva en adelante; `ledgerSequence` resuelve
 movimientos del mismo día.
 
+## Slice 6 — Cierre del MVP y datos de mercado
+
+El Slice 6 se divide en dos entregas consecutivas. El plan detallado está en
+[`slice-six-plan.md`](slice-six-plan.md). Las mejoras visuales adicionales se
+reservan para la clase y no bloquean este slice.
+
+### Slice 6A — Fuente real controlada
+
+**IDs:** MDATA-001, MDATA-002, INST-001, HIST-002, HIST-003, PORT-004,
+PORT-005, SEC-001, SDD-001.
+
+Evaluar Twelve Data como candidata y, si cumple los criterios de ADR-0005,
+obtener una muestra autorizada y convertirla al adapter de archivo normalizado.
+El dataset demo continúa siendo el predeterminado para desarrollo, CI y clase.
+No se implementa scraping ni se expone una clave de proveedor en cliente.
+
+Aceptación: proveedor, plan, licencia, cobertura y semántica de cierre quedan
+registrados; existen al menos tres acciones colombianas en COP; la muestra
+normalizada tiene manifiesto y checksum; las pruebas contractuales pasan; una
+falla de proveedor o ausencia de cobertura produce un error explícito y nunca
+activa el mock silenciosamente. Si no se demuestra permiso o acceso suficiente,
+el bloqueo queda documentado y no se fuerza la aprobación.
+
+### Slice 6B — Completar evidencia del MVP
+
+**IDs:** PORT-004, PORT-005, MDATA-002, SEC-001, UI-001, UI-002, OBS-001,
+SDD-001.
+
+Implementar la ruta dedicada `GET /api/v1/portfolio/positions` reutilizando la
+proyección existente, sin crear reglas financieras nuevas. Completar OpenAPI,
+serialización, estados vacío/completo/incompleto/error y pruebas de contrato,
+integración y E2E. Después actualizar trazabilidad y registrar la validación
+final del MVP con los límites que permanezcan.
+
+Aceptación: la ruta devuelve las mismas posiciones autoritativas del snapshot,
+con errores y estados de valoración consistentes; cubre portafolio vacío,
+múltiples compras y precio ausente; no modifica el ledger; todos los gates del
+repositorio pasan.
+
 ## Definition of Ready por slice
 
 - IDs y criterios sin decisiones pendientes;
@@ -78,4 +117,7 @@ movimientos del mismo día.
 
 ## Orden y bloqueos
 
-El orden previsto es 0 → 1 → 2 → 3 → 4 → 5. Puede desarrollarse el slice 2 con mock, pero no aceptarse para MVP hasta resolver ADR-0005. La compra depende de cotizaciones confiables del slice 2. No se inicia una venta ni otro activo como trabajo preparatorio.
+El orden previsto es 0 → 1 → 2 → 3 → 4 → 5 → 6A → 6B. Puede desarrollarse el
+slice 2 con mock, pero no aceptarse para MVP hasta resolver ADR-0005. La compra
+depende de cotizaciones confiables del slice 2. No se inicia una venta ni otro
+activo como trabajo preparatorio.

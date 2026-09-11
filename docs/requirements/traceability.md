@@ -28,8 +28,9 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 | OBS-001   | Correlación y errores            | Architecture § Observability             | `X-Request-Id`, Problem       | integration              | yes       | partial     | partial  |
 | PERF-001  | Caché de mercado                 | ADR-0007                                 | MarketDataProvider wrapper    | unit + integration       | yes       | yes         | yes      |
 | SDD-001   | Specs antes de producción        | AGENTS.md                                | docs                          | review checklist         | yes       | partial     | partial  |
-| PED-001   | Escenarios pedagógicos           | Product § Extensión pedagógica; ADR-0010 | API scenarios                 | unit + integration + E2E | yes       | no          | no       |
-| PED-002   | Anulación y reinicio reversibles | Product § Extensión pedagógica; ADR-0010 | API void/reset                | unit + concurrency + E2E | yes       | no          | no       |
+| PED-001   | Escenarios pedagógicos           | Product § Extensión pedagógica; ADR-0010 | API scenarios                 | unit + integration + E2E | yes       | yes         | yes      |
+| PED-002   | Anulación y reinicio reversibles | Product § Extensión pedagógica; ADR-0010 | API void/reset                | unit + concurrency + E2E | yes       | yes         | yes      |
+| EDU-001   | Explicaciones pedagógicas        | Product § EDU-001; ADR-0011              | UI contextual                 | accessibility + E2E      | yes       | yes         | yes      |
 
 ## Adición de Fase 1
 
@@ -98,3 +99,48 @@ Los estados son independientes: `specified` indica contrato documental; `impleme
 | HIST-003 | yes         | yes      | `tests/unit/historical-simulation.test.ts`, contrato OpenAPI y E2E; fixture COP 1.000.000 a 100→120 produce COP 1.200.000 y 20%.                                                                                     |
 | UI-001   | partial     | partial  | La experiencia `/simulator` cubre loading, vacío, error y éxito; la evidencia E2E cubre el flujo demo y cobertura insuficiente.                                                                                      |
 | UI-002   | partial     | partial  | La UI muestra disclaimer, procedencia, etiqueta `demo`, base, supuestos y tabla accesible; la cobertura global de accesibilidad permanece transversal.                                                               |
+
+## Adición de Fase 1 — Slice 5
+
+**PED-001/PED-002/EDU-001 — Escenarios y aprendizaje:** escenarios locales
+archivables, reinicio que conserva la práctica anterior, anulaciones
+append-only mediante `VOID_BUY` y explicaciones contextuales ampliables en la
+interfaz. El detalle de la implementación y la evidencia está en
+[`slice-five-validation.md`](../testing/slice-five-validation.md). Las filas
+históricas de la tabla base se consideran actualizadas por esta sección.
+
+| ID      | Implemented | Verified | Evidencia y límite                                                             |
+| ------- | ----------- | -------- | ------------------------------------------------------------------------------ |
+| PED-001 | yes         | yes      | `tests/e2e/scenarios.spec.ts`; reinicio, archivo y conservación de ejemplos.   |
+| PED-002 | yes         | yes      | `tests/e2e/scenarios.spec.ts`; `VOID_BUY`, doble anulación y reconstrucción.   |
+| EDU-001 | yes         | yes      | `tests/e2e/learning.spec.ts`; explicaciones visibles, ampliables y accesibles. |
+
+## Plan de cierre — Slice 6
+
+Slice 6 se ejecutará en dos partes según
+[`slice-six-plan.md`](../delivery/slice-six-plan.md). Esta sección no cambia
+estados de implementación ni verificación: solo registra el trabajo pendiente.
+
+### Slice 6A — Fuente real controlada
+
+| ID        | Implemented | Verified | Evidencia pendiente                                                      |
+| --------- | ----------- | -------- | ------------------------------------------------------------------------ |
+| MDATA-001 | yes         | partial  | Probar metadata contra una fuente real aprobada, con base y procedencia. |
+| MDATA-002 | yes         | partial  | Smoke real, límites y fallos explícitos sin fallback silencioso.         |
+| INST-001  | yes         | partial  | Confirmar acciones colombianas activas en COP en la muestra real.        |
+| HIST-002  | yes         | yes      | Validar calendario y sesiones del proveedor real.                        |
+| HIST-003  | yes         | yes      | Repetir escenarios con datos reales sin cambiar la matemática.           |
+| PORT-004  | yes         | partial  | Evidencia con múltiples compras y dataset real.                          |
+| PORT-005  | yes         | partial  | Evolución completa y huecos con dataset real.                            |
+
+### Slice 6B — Ruta y evidencia final
+
+| ID       | Implemented | Verified | Evidencia pendiente                                                        |
+| -------- | ----------- | -------- | -------------------------------------------------------------------------- |
+| PORT-004 | yes         | partial  | Implementar y probar `GET /portfolio/positions`.                           |
+| PORT-005 | yes         | partial  | Verificar la ruta de posiciones junto con la evolución sin regresiones.    |
+| SEC-001  | yes         | partial  | Completar la prueba de integridad de datos persistidos y autoridad server. |
+| UI-001   | partial     | partial  | Cubrir estados de la nueva ruta en la experiencia aplicable.               |
+| UI-002   | partial     | partial  | Mantener explicación y procedencia en la superficie de posiciones.         |
+| OBS-001  | partial     | partial  | Confirmar `requestId`, Problem y logs en la ruta nueva.                    |
+| SDD-001  | partial     | partial  | Registrar gates, límites y decisión final del MVP.                         |

@@ -1,6 +1,6 @@
 # Contrato de datos de mercado
 
-**Estado:** interfaz aceptada; proveedor real no seleccionado  
+**Estado:** interfaz aceptada; proveedor real en evaluación, no seleccionado
 **Requirements:** INST-001, HIST-002, HIST-003, MDATA-001, MDATA-002, PERF-001
 
 ## Propósito y frontera
@@ -134,7 +134,14 @@ La decisión está bloqueada. Para aceptar un candidato se exige:
 5. metadata de fechas y definición de precio;
 6. pruebas contractuales y registro de limitaciones.
 
-Twelve Data no cumple el costo conocido para cobertura colombiana. La serie pública identificada de la Superfinanciera describe precios promedio diarios y no puede etiquetarse como cierre. Ninguna fuente se aprueba en Fase 0.
+Twelve Data es la primera candidata de evaluación porque documenta cobertura
+de la Bolsa de Valores de Colombia (`XBOG`) y datos EOD, pero su acceso, costo y
+condiciones de uso deben verificarse para la cuenta concreta. Los planes
+personales pueden servir para uso educativo local, pero no autorizan por sí
+solos la redistribución pública. La serie pública identificada de la
+Superfinanciera describe precios promedio diarios y no puede etiquetarse como
+cierre. Ninguna fuente se aprueba todavía; el detalle de la evaluación está en
+[`slice-six-plan.md`](../delivery/slice-six-plan.md).
 
 ## Caché
 
