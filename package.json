@@ -57,5 +57,12 @@
     "typescript": "5.9.3",
     "vitest": "5.0.0",
     "yaml": "2.9.0"
+  },
+  "overrides": {
+    "drizzle-kit": {
+      "@esbuild-kit/core-utils": {
+        "esbuild": "0.25.12"
+      }
+    }
   }
 }
